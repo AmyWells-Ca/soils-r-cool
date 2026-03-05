@@ -13,9 +13,6 @@
 #
 ################################################################################
 
-# CLEAN UP
-rm(list=ls(all=TRUE))  # remove any objects left from previous runs of R
-
 # Libraries
 # install pacman (package manager) if needed
 if (!require("pacman")) install.packages("pacman")
@@ -32,13 +29,13 @@ pacman::p_load(
   car,        # Type III Anova Analysis
   styler,     # Automatic cleanup 
   renv,       # Save and Re-upload environment
-  ggplot2,    # GGPlot
+  systemfonts,# Times New Roman and Aral
   latex2exp,  # Latex based figure captions
+  ggplot2,    # GGPlot
   glue,       # Variable 
-  plotly,     # Interactive plots
-  DT,         # Interactive tables
-  patchwork,  # Combine charts together
-  systemfonts
+  # plotly,     # Interactive plots
+  # DT,         # Interactive tables
+  patchwork   # Combine charts together
 )
 
 # Set Render Engine
@@ -103,9 +100,9 @@ pairs(~
 #                         Themes for ggplot2 Figures                           #
 #                                                                              #
 ################################################################################
-
-match_fonts("Times New Roman")
-match_fonts("Arial")
+system_fonts()
+require_font("Times New Roman")
+require_font("Arial")
 
 ## Base Theme (Replicates style of graphs Amy makes in excel)
 
@@ -174,7 +171,7 @@ theme_set(theme_main)
 #
 ################################################################################
 
-fn_statTest = function(testModel){
+fn_statTest = function(testModel, testTheme = theme_presentation, saveTest = FALSE){
 
   statTest_residuals = resid(testModel)
   statTest_fitted = fitted(testModel)
@@ -189,7 +186,7 @@ fn_statTest = function(testModel){
       subtitle = glue("df={testModel$df.residual[1]}; Adjusted R Squared: {round(statTest_summary$adj.r.squared,digits=2)}"),
       x = TeX("$\\bf{Measured\\,Values}"),
       y = TeX("$\\bf{Predicted\\,Values}")
-    ) + theme_paper
+    ) + testTheme
   
   ## Test for Linearity & Equal Variance
   p2 <- ggplot(data = testModel) +
@@ -199,7 +196,7 @@ fn_statTest = function(testModel){
       title = "Residuals vs. Predicted Values",
       x = TeX("$\\bf{Predicted\\,Values\\,\\hat{y}}"),
       y = TeX("$\\bf{Residuals}")
-    ) + theme_paper
+    ) + testTheme
 
   ## Testing for Normality
   p3 <- ggplot(testModel, aes(sample = statTest_residuals))+stat_qq()+stat_qq_line(color="red")+
@@ -207,7 +204,7 @@ fn_statTest = function(testModel){
       title =  "Normality QQ Plot",
       x = TeX("$\\bf{Theoretical}"),
       y = TeX("$\\bf{Sample}")
-    ) + theme_paper
+    ) + testTheme
 
   ## Shaprio-Wilks Test?
   if(testModel$df.residual[1] <= 30){
@@ -220,30 +217,34 @@ fn_statTest = function(testModel){
 
   ## Histogram Plot
   p4 <- ggplot(testModel, aes(x=statTest_residuals)) +
-    geom_histogram(binwidth = 5, fill = "lightgray", color="darkgray") +
+    geom_histogram(binwidth = round(max(statTest_residuals)-min(statTest_residuals),digits=1)/5, fill = "lightgray", color="darkgray") +
     labs(
       title = "Histogram of Residuals",
       subtitle = substitute(statTest_SW),
       y = TeX("$\\bf{Count}"),
       x = TeX("$\\bf{Residual}")
-    ) + theme_paper
+    ) + testTheme
 
-  # p5 <- (p1) / (p2 | p3) / (p4)
-
-  # ggsave (
-  #   filename = glue("{substitute(testModel)}.png"),
-  #   plot = p5,
-  #   device = png(),
-  #   path = "./OUTPUT",
-  #   scale = 1,
-  #   width = 6,
-  #   height = 7,
-  #   units = c ("in"),
-  #   dpi = 300,
-  #   limitsize = TRUE,
-  #   bg = NULL,
-  #   create.dir = FALSE
-  # )
+  p5 <- (p1) / (p2 | p3) / (p4)
+  print(p5)
+  
+  if(saveTest==TRUE){
+    ## Exports composite graph as .png
+    ggsave (
+      filename = glue("{substitute(testModel)}.png"),
+      plot = p5,
+      device = png(),
+      path = "./OUTPUT",
+      scale = 1,
+      width = 6,
+      height = 7,
+      units = c ("in"),
+      dpi = 300,
+      limitsize = TRUE,
+      bg = NULL,
+      create.dir = FALSE
+    )
+  }
 }
 
 # Testing Models
@@ -253,8 +254,10 @@ model_DSi_depth <- lm(Si_CaCl2 ~ Depth_Top, data=data_depth)
 model_DSi_land <- lm(Si_CaCl2 ~ Land_Use_Factor, data=data_landUse)
 
 fn_statTest(model_pH)
-fn_statTest(model_DSi_depth)
-fn_statTest(model_DSi_land)
+fn_statTest(model_DSi_depth, saveTest = TRUE)
+fn_statTest(model_DSi_land,theme_paper,TRUE)
+
+
 
 
 statTest_residuals = resid(model_pH)
@@ -262,7 +265,9 @@ statTest_fitted = fitted(model_pH)
 statTest_formula = deparse1(formula(model_pH))
 statTest_summary = summary(model_pH)
 
-ggplot(data = model_pH) +
+round(max(statTest_residuals)-min(statTest_residuals),digits=1)/5
+
+p1 <- ggplot(data = model_pH) +
   geom_point(mapping = aes(x = statTest_fitted, y = statTest_residuals)) +
   geom_hline(aes(yintercept = 0), color="red") +
   labs(
@@ -272,8 +277,9 @@ ggplot(data = model_pH) +
   ) + theme_paper
 
 
-ggplot(data = data_landUse) + geom_point(mapping = aes(x=pH_H2O, y=pH_CaCl2))
+p2 <- ggplot(data = data_landUse) + geom_point(mapping = aes(x=pH_H2O, y=pH_CaCl2))
 
+print(p1)
 
 
 
