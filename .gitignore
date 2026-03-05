@@ -50,3 +50,4 @@ rsconnect/
 
 # Hides Source Data
 input/*
+output/*.png
