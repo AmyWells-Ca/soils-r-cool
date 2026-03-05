@@ -120,8 +120,8 @@ theme_presentation = theme(
   legend.title = element_text(size = 10, family = "Arial"),
   axis.title.x = element_text(size = 12, family = "Arial"),
   axis.title.y = element_text(size = 12, family = "Arial"),
-  axis.text.x = element_text(size = 12, family = "Arial"),
-  axis.text.y = element_text(size = 12, family = "Arial")
+  axis.text.x = element_text(size = 10, family = "Arial"),
+  axis.text.y = element_text(size = 10, family = "Arial")
 )
 
 ## Changes font to Times New Roman (for Papers)
@@ -131,8 +131,8 @@ theme_paper = theme(
   legend.title = element_text(size = 10, family = "Times New Roman"),
   axis.title.x = element_text(size = 12, family = "Times New Roman"),
   axis.title.y = element_text(size = 12, family = "Times New Roman"),
-  axis.text.x = element_text(size = 12, family = "Times New Roman"),
-  axis.text.y = element_text(size = 12, family = "Times New Roman")
+  axis.text.x = element_text(size = 10, family = "Times New Roman"),
+  axis.text.y = element_text(size = 10, family = "Times New Roman")
 )
 
 ## Updates Default Theme
@@ -281,7 +281,139 @@ p2 <- ggplot(data = data_landUse) + geom_point(mapping = aes(x=pH_H2O, y=pH_CaCl
 
 print(p1)
 
+ggplot(data = data_depth) +
+  geom_point(mapping = aes(x = Si_CaCl2, y = Depth_Avg, color = Land_Use_Factor)) +
+  scale_x_continuous(limits = c(0, 30), expand = c(0,0))
+  scale_y_reverse() + theme_paper
 
+  
+  
+  
+  
+  
+## Graph Template (Depth)
+
+d1 <- ggplot(data = data_depth) +
+  geom_point(mapping = aes(x = Si_CaCl2, y = Depth_Avg, color = Land_Use_Factor)) +
+  labs(
+    # title = "Fraction of Plant Available Si (DSi)",
+    x = TeX("$\\bf{Si\\,Concentration}\\,(mg\\,kg^-1)"),
+    y = TeX("$\\bf{Sampling\\,Depth}\\,(cm)"),
+    color = TeX("$\\bf{Land\\,Management}")
+  ) +
+  scale_x_continuous(
+    limits = c(0,30),
+    expand = c(0,0) ## Aligns edges to Gridlines
+  ) +
+  scale_y_reverse(
+    limits = c(0,80),
+    expand = c(0,0)
+  ) +
+  theme_paper
+
+d2 <- ggplot(data = data_depth) +
+  geom_point(mapping = aes(x = Si_Acetic, y = Depth_Avg, color = Land_Use_Factor)) +
+  labs(
+    # title = "Fraction of Adsorbed Si (AdSi)",
+    x = TeX("$\\bf{Si\\,Concentration}\\,(mg\\,kg^-1)"),
+    y = TeX("$\\bf{Sampling\\,Depth}\\,(cm)"),
+    color = TeX("$\\bf{Land\\,Management}")
+  ) +
+  scale_x_continuous(
+    limits = c(0,250),
+    expand = c(0,0) ## Aligns edges to Gridlines
+  ) +
+  scale_y_reverse(
+    limits = c(0,80),
+    expand = c(0,0)
+  ) +
+  theme_paper 
+  
+d3 <- ggplot(data = data_depth) +
+  geom_point(mapping = aes(x = Oxa_Si, y = Depth_Avg, color = Land_Use_Factor)) +
+  labs(
+    # title = "Fraction of Adsorbed Si (AdSi)",
+    x = TeX("$\\bf{Si\\,Concentration}\\,(mg\\,kg^-1)"),
+    y = TeX("$\\bf{Sampling\\,Depth}\\,(cm)"),
+    color = TeX("$\\bf{Land\\,Management}")
+  ) +
+  scale_x_continuous(
+    limits = c(0,15000),
+    expand = c(0,0) ## Aligns edges to Gridlines
+  ) +
+  scale_y_reverse(
+    limits = c(0,80),
+    expand = c(0,0)
+  ) +
+  theme_paper  
+
+## Graph Template (ALM)
+
+a1 <- ggplot(data = data_landUse, aes(x = Land_Use, y=Si_CaCl2)) +
+  geom_bar(stat = "identity") +
+  labs(
+    title = "Pools of DSi by Land Management",
+    x = TeX("$\\bf{Land\\,Management\\,Strategy}"),
+    y = TeX("$\\bf{DSi\\,Concentration}\\,(mg\\,kg^-1)")
+  ) +
+  # scale_x_discrete(
+  #   expand = c(0,0) ## Aligns edges to Gridlines
+  # ) +
+  scale_y_continuous(
+    limits = c(0,40),
+    expand = c(0,0)
+  ) +
+  theme_paper
+
+a2 <- ggplot(data = data_landUse, aes(x = Land_Use, y=Si_Acetic)) +
+  geom_bar(stat = "identity") +
+  labs(
+    title = "Pools of AdSi by Land Management",
+    x = TeX("$\\bf{Land\\,Management\\,Strategy}"),
+    y = TeX("$\\bf{AdSi\\,Concentration}\\,(mg\\,kg^-1)")
+  ) +
+  # scale_x_discrete(
+  #   expand = c(0,0) ## Aligns edges to Gridlines
+  # ) +
+  scale_y_continuous(
+    limits = c(0,250),
+    expand = c(0,0)
+  ) +
+  theme_paper
+
+a3 <- ggplot(data = data_landUse, aes(x = Land_Use, y=Oxa_Si)) +
+  geom_bar(stat = "identity") +
+  labs(
+    title = "Pools of AdSi by Land Management",
+    x = TeX("$\\bf{Land\\,Management\\,Strategy}"),
+    y = TeX("$\\bf{AdSi\\,Concentration}\\,(mg\\,kg^-1)")
+  ) +
+  # scale_x_discrete(
+  #   expand = c(0,0) ## Aligns edges to Gridlines
+  # ) +
+  scale_y_continuous(
+    limits = c(0,15000),
+    expand = c(0,0)
+  ) +
+  theme_paper
+
+c1 <- ((a1 | d1)/(a2 | d2)/(a3 | d3))
+print(c1)
+
+ggsave (
+  filename = "Composite 1.png",
+  plot = c1,
+  device = png(),
+  path = "./OUTPUT",
+  scale = 1,
+  width = 6.5,
+  height = 7,
+  units = c ("in"),
+  dpi = 300,
+  limitsize = TRUE,
+  bg = NULL,
+  create.dir = FALSE
+)
 
 # Plot 1: Soil Organic Matter and Cation Exchange Capacity & pH
 # plot(rnorm(50),rnorm(50))
