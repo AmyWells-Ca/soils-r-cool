@@ -13,12 +13,18 @@
 #
 ################################################################################
 
-# Libraries ####
+# CLEAN UP
+rm(list=ls(all=TRUE))  # remove any objects left from previous runs of R
+
+# Libraries
 # install pacman (package manager) if needed
 if (!require("pacman")) install.packages("pacman")
+
 # Load contributed packages with pacman
 pacman::p_load(
+  ragg,
   tidyverse,  # Base
+  dplyr,      # Analysis
   remote,     # Install package from GitHub
   readxl,     # Import Excel files
   writexl,    # Write Excel files
@@ -26,11 +32,17 @@ pacman::p_load(
   car,        # Type III Anova Analysis
   styler,     # Automatic cleanup 
   renv,       # Save and Re-upload environment
+  ggplot2,    # GGPlot
+  latex2exp,  # Latex based figure captions
+  glue,       # Variable 
   plotly,     # Interactive plots
   DT,         # Interactive tables
   patchwork,  # Combine charts together
-  hrbrthemes  #"ipsum" theme for ggplot2 charts
+  systemfonts
 )
+
+# Set Render Engine
+
 
 
 # Import Data set
@@ -38,23 +50,97 @@ data <- readxl::read_xlsx("./input/readable_data.xlsx", sheet = "Machine Readabl
 
 # Create Factors from Data
 data$Transect <- as.factor(data$Transect)
-data$Type_Factor <- as.factor(Type)
+data$Type_Factor <- as.factor(data$Type)
 data$Land_Use_Factor <- as.factor(data$Land_Use)
+
+data_depth <- filter(data, Type == "Pit")
+data_landUse <- filter(data, Depth_Top == 0)
 
 # Scatterplot Matrix
 
 pairs(~ 
-        Depth_Top +
+        Depth_Avg +
         Land_Use_Factor +
+        perSand +
+        perSilt +
+        perClay +
+        pH_H2O +
+        pH_CaCl2 +
+        pan_Al +
+        pan_Ca +
+        pan_Cu +
+        pan_Fe +
+        pan_K +
+        pan_Mg +
+        pan_Mn +
+        pan_Na +
+        pan_P +
+        pan_S +
+        pan_Zn 
+        , data = data, 
+        main = "Plant Available Nutrients Scatterplot Matrix on Kwiakah First Nation Soils"
+)
+
+pairs(~
+        Depth_Avg +
+        Land_Use_Factor +
+        perSand +
+        perSilt +
+        perClay +
         pH_H2O +
         pH_CaCl2 +
         Si_CaCl2 +
-        Si_Acetic 
-        
-        , data = data, 
-        main = "Scatterplot Matrix for Kwiakah First Nation Soils"
+        Si_Acetic +
+        Oxa_Al +
+        Oxa_Fe +
+        Oxa_Si
+        , data = data_depth, 
+        main = "Silicon Concentrations Scatterplot Matrix on Kwiakah First Nation Soils"
 )
 
+################################################################################
+#                                                                              #
+#                         Themes for ggplot2 Figures                           #
+#                                                                              #
+################################################################################
+
+match_fonts("Times New Roman")
+match_fonts("Arial")
+
+## Base Theme (Replicates style of graphs Amy makes in excel)
+
+theme_main = theme_gray() + theme(
+  panel.background = element_rect(fill = "white"),
+  panel.border = element_rect(color = "black", linetype = "solid"),
+  panel.grid.major = element_line(color = "lightgray", linetype = "dashed"),
+  plot.background = element_rect(fill = "white"),
+)
+
+## Changes font to Arial (for Presentations)
+theme_presentation = theme(
+  plot.title = element_text(size = 12, family = "Arial", face = "bold", color = "black"),
+  plot.subtitle = element_text(size = 12, family = "Arial", color = "black"),
+  legend.title = element_text(size = 10, family = "Arial"),
+  axis.title.x = element_text(size = 12, family = "Arial"),
+  axis.title.y = element_text(size = 12, family = "Arial"),
+  axis.text.x = element_text(size = 12, family = "Arial"),
+  axis.text.y = element_text(size = 12, family = "Arial")
+)
+
+## Changes font to Times New Roman (for Papers)
+theme_paper = theme(
+  plot.title = element_text(size = 12, family = "Times New Roman", face = "bold", color = "black"),
+  plot.subtitle = element_text(size = 12, family = "Times New Roman", color = "black"),
+  legend.title = element_text(size = 10, family = "Times New Roman"),
+  axis.title.x = element_text(size = 12, family = "Times New Roman"),
+  axis.title.y = element_text(size = 12, family = "Times New Roman"),
+  axis.text.x = element_text(size = 12, family = "Times New Roman"),
+  axis.text.y = element_text(size = 12, family = "Times New Roman")
+)
+
+## Updates Default Theme
+theme_set(theme_main)
+  
 ################################################################################
 #                                                                              #
 #               Process to Test for Statistical Significance                   #
@@ -88,54 +174,107 @@ pairs(~
 #
 ################################################################################
 
-# Si
+fn_statTest = function(testModel){
 
-model_DSi <- lm(Si_CaCl2 ~ Land_Use_Factor + Depth_Top, data=data)
-summary(model_DSi)
+  statTest_residuals = resid(testModel)
+  statTest_fitted = fitted(testModel)
+  statTest_formula = deparse1(formula(testModel))
+  statTest_summary = summary(testModel)
+  
+  ## Plot Model
+  p1 <- ggplot(data = testModel) +
+    geom_point(mapping =aes(x = testModel$model[[1]], y = statTest_fitted)) +
+    labs(
+      title = glue("{substitute(testModel)} | {statTest_formula}"),
+      subtitle = glue("df={testModel$df.residual[1]}; Adjusted R Squared: {round(statTest_summary$adj.r.squared,digits=2)}"),
+      x = TeX("$\\bf{Measured\\,Values}"),
+      y = TeX("$\\bf{Predicted\\,Values}")
+    ) + theme_paper
+  
+  ## Test for Linearity & Equal Variance
+  p2 <- ggplot(data = testModel) +
+    geom_point(mapping = aes(x = statTest_fitted, y = statTest_residuals)) +
+    geom_hline(aes(yintercept = 0), color="red") +
+    labs(
+      title = "Residuals vs. Predicted Values",
+      x = TeX("$\\bf{Predicted\\,Values\\,\\hat{y}}"),
+      y = TeX("$\\bf{Residuals}")
+    ) + theme_paper
 
-model_DSi_depth <- lm(Si_CaCl2[data$Type == "Pit"] ~ Depth_Top[data$Type == "Pit"], data=data)
-summary(model_DSi_depth)
+  ## Testing for Normality
+  p3 <- ggplot(testModel, aes(sample = statTest_residuals))+stat_qq()+stat_qq_line(color="red")+
+    labs(
+      title =  "Normality QQ Plot",
+      x = TeX("$\\bf{Theoretical}"),
+      y = TeX("$\\bf{Sample}")
+    ) + theme_paper
 
-model_DSi_land <- lm(Si_CaCl2[data$Depth_Top == 0] ~ Land_Use_Factor[data$Depth_Top == 0], data=data)
-summary(model_DSi_land)
+  ## Shaprio-Wilks Test?
+  if(testModel$df.residual[1] <= 30){
+    statTest_SW <- shapiro.test(statTest_residuals)
+    statTest_SW <- statTest_SW$p.value
+    statTest_SW <- glue("Shapiro-Wilk Test P-Value: {round(statTest_SW,digits=4)}")
+  } else {
+    statTest_SW <- ""
+  }
 
-par(mfrow=c(2,2), cex=1.0, mai=c(1.0,1.0,0.6,0.6), pty="s")
-plot(resid(model_DSi_land) ~ fitted(model_DSi_land), main = "Residual Plot", ylab = "Residuals", xlab = "Predicted")
-abline(a=0,b=0, col="red")
-qqnorm(resid(model_DSi_land))
-qqline(resid(model_DSi_land),col=2)
-hist(resid(model_DSi_land),density = 5, main="Residuals Distribution", col="green", border="black", xlab = "residuals")
-par(mfrow=c(1,1), cex=1.0, mai=c(1.0,1.0,1.0,1.0) )
+  ## Histogram Plot
+  p4 <- ggplot(testModel, aes(x=statTest_residuals)) +
+    geom_histogram(binwidth = 5, fill = "lightgray", color="darkgray") +
+    labs(
+      title = "Histogram of Residuals",
+      subtitle = substitute(statTest_SW),
+      y = TeX("$\\bf{Count}"),
+      x = TeX("$\\bf{Residual}")
+    ) + theme_paper
 
-shapiro.test(resid(model_DSi_land))
+  # p5 <- (p1) / (p2 | p3) / (p4)
+
+  # ggsave (
+  #   filename = glue("{substitute(testModel)}.png"),
+  #   plot = p5,
+  #   device = png(),
+  #   path = "./OUTPUT",
+  #   scale = 1,
+  #   width = 6,
+  #   height = 7,
+  #   units = c ("in"),
+  #   dpi = 300,
+  #   limitsize = TRUE,
+  #   bg = NULL,
+  #   create.dir = FALSE
+  # )
+}
+
+# Testing Models
+
+model_pH = lm(pH_CaCl2 ~ pH_H2O, data=data)
+model_DSi_depth <- lm(Si_CaCl2 ~ Depth_Top, data=data_depth)
+model_DSi_land <- lm(Si_CaCl2 ~ Land_Use_Factor, data=data_landUse)
+
+fn_statTest(model_pH)
+fn_statTest(model_DSi_depth)
+fn_statTest(model_DSi_land)
 
 
+statTest_residuals = resid(model_pH)
+statTest_fitted = fitted(model_pH)
+statTest_formula = deparse1(formula(model_pH))
+statTest_summary = summary(model_pH)
+
+ggplot(data = model_pH) +
+  geom_point(mapping = aes(x = statTest_fitted, y = statTest_residuals)) +
+  geom_hline(aes(yintercept = 0), color="red") +
+  labs(
+    title = "Residuals vs. Predicted Values",
+    x = TeX("$\\bf{Predicted\\,Values\\,\\hat{y}}$"),
+    y = TeX("$\\bf{Residuals}$")
+  ) + theme_paper
 
 
-
-plot(
-  data$Si_CaCl2[data$Type == "Pit"],
-  data$Depth_Top[data$Type == "Pit"]*-1,
-  xlab = "Concentration (mg kg-1)",
-  ylab = "Depth",
-)
+ggplot(data = data_landUse) + geom_point(mapping = aes(x=pH_H2O, y=pH_CaCl2))
 
 
-ggplot(data = data, mapping = aes(x = Si_CaCl2, y = Depth_Top, color = Land_Use_Factor)) +
-  geom_point(
-    mapping = aes(x = Si_CaCl2, y = Depth_Top)
-  ) +
-  scale_x_continuous(breaks = seq(0, 30, by = 5))+
-  xlim(0,30) +
-  ylim(0,75) +
-  labs(x = "Concentration (mg kg-1)", y = "Depth", color = "Land Use") +
-  theme(
-    axis.title = element_text(face = "bold"),
-    legent.title = element_text(face = "bold"),
-    panel.background = element_rect(fill = "white"),
-    panel.grid.major = element_line(color = "lightgray", linetype = "dashed"),
-    plot.background = element_rect(fill = "white"),
-  )
 
 
 # Plot 1: Soil Organic Matter and Cation Exchange Capacity & pH
