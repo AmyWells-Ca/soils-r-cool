@@ -39,16 +39,16 @@ pacman::p_load(
 )
 
 # Set Render Engine
-
+knitr::opts_chunk$set(dev = "ragg_png")
 
 
 # Import Data set
 data <- readxl::read_xlsx("./input/readable_data.xlsx", sheet = "Machine Readable")
 
 # Create Factors from Data
-data$Transect <- as.factor(data$Transect)
-data$Type_Factor <- as.factor(data$Type)
-data$Land_Use_Factor <- as.factor(data$Land_Use)
+data$Transect.f <- as.factor(data$Transect)
+data$Type.f <- as.factor(data$Type)
+data$Land_Use.f <- as.factor(data$Land_Use)
 
 data_depth <- filter(data, Type == "Pit")
 data_landUse <- filter(data, Depth_Top == 0)
@@ -101,8 +101,8 @@ pairs(~
 #                                                                              #
 ################################################################################
 system_fonts()
-require_font("Times New Roman")
-require_font("Arial")
+match_fonts("Times New Roman")
+match_fonts("Arial")
 
 ## Base Theme (Replicates style of graphs Amy makes in excel)
 
@@ -111,12 +111,16 @@ theme_main = theme_gray() + theme(
   panel.border = element_rect(color = "black", linetype = "solid"),
   panel.grid.major = element_line(color = "lightgray", linetype = "dashed"),
   plot.background = element_rect(fill = "white"),
+  legend.position = c(0.95, 0.95),
+  legend.justification = c("right", "top"),
+  legend.box.just = "right",
+  legend.margin = margin(3, 3, 3, 3)
 )
 
 ## Changes font to Arial (for Presentations)
 theme_presentation = theme(
   plot.title = element_text(size = 12, family = "Arial", face = "bold", color = "black"),
-  plot.subtitle = element_text(size = 12, family = "Arial", color = "black"),
+  plot.subtitle = element_text(size = 11, family = "Arial", color = "black"),
   legend.title = element_text(size = 10, family = "Arial"),
   axis.title.x = element_text(size = 12, family = "Arial"),
   axis.title.y = element_text(size = 12, family = "Arial"),
@@ -127,7 +131,7 @@ theme_presentation = theme(
 ## Changes font to Times New Roman (for Papers)
 theme_paper = theme(
   plot.title = element_text(size = 12, family = "Times New Roman", face = "bold", color = "black"),
-  plot.subtitle = element_text(size = 12, family = "Times New Roman", color = "black"),
+  plot.subtitle = element_text(size = 11, family = "Times New Roman", color = "black"),
   legend.title = element_text(size = 10, family = "Times New Roman"),
   axis.title.x = element_text(size = 12, family = "Times New Roman"),
   axis.title.y = element_text(size = 12, family = "Times New Roman"),
@@ -247,6 +251,12 @@ fn_statTest = function(testModel, testTheme = theme_presentation, saveTest = FAL
   }
 }
 
+################################################################################
+#                                                                              #
+#                     END OF STATISTICAL TESTING FUNCTION                      #
+#                                                                              #
+################################################################################
+
 # Testing Models
 
 model_pH = lm(pH_CaCl2 ~ pH_H2O, data=data)
@@ -256,6 +266,197 @@ model_DSi_land <- lm(Si_CaCl2 ~ Land_Use_Factor, data=data_landUse)
 fn_statTest(model_pH)
 fn_statTest(model_DSi_depth, saveTest = TRUE)
 fn_statTest(model_DSi_land,theme_paper,TRUE)
+
+################################################################################
+#                                                                              #
+#                             GRAPHING AIDS                                    #
+#                                                                              #
+################################################################################
+
+fn_xLim = function(localMin, localMax){
+  return(scale_x_continuous(limits = c(localMin, localMax), expand = c(0,0)))
+}
+
+fn_xLimR = function(localMin, localMax){
+  return(scale_x_reverse(limits=c(localMin, localMax), expand = c(0,0)))
+}
+
+fn_yLim = function(localMin, localMax){
+  return(scale_y_continuous(limits = c(localMin, localMax), expand = c(0,0)))
+}
+
+fn_yLimR = function(localMin, localMax){
+  return(scale_y_reverse(limits=c(localMin, localMax), expand = c(0,0)))
+}
+
+fn_fixX = function(){
+  return(scale_x_continuous(expand = c(0,0)))
+}
+
+fn_fixY = function(){
+  return(scale_y_continuous(expand = c(0,0)))
+}
+
+addBoxPlot = function(xValues, yValues){
+  
+  # t_min = min(yValues)
+  # t_q1 = quantile(yValues)[2]
+  # t_median = median(yValues)
+  # t_mean = mean(yValues)
+  # t_q3 = quantile(yValues)[4]
+  # t_max = max(yValues)
+  
+  return(
+    geom_boxplot(aes(xValues, yValues))
+    )
+  
+  # print(t_min)
+  # print(t_q1)
+  # print(t_median)
+  # print(t_mean)
+  # print(t_q3)
+  # print(t_max)
+}
+
+################################################################################
+
+ggplot() +
+  addBoxPlot(data$Land_Use.f, data$Si_Acetic) +
+  fn_yLim(0,250) +
+  labs(
+    title = "Title",
+    x = "X Values",
+    y = "Y Values"
+  ) + theme_presentation
+
+################################################################################
+#
+# Soil Texture
+#
+################################################################################
+
+# Filter data to only include data where texture was determined
+data_Texture = filter(data, perSand != 0)
+
+# Approximate Position Along Transects
+
+### Transect B Length: 856 pixels
+### P1 Pos: 70 pixels
+### P2 Pos: 406 Pixels
+### P3 Pos: 850 Pixels
+
+for(i in 1:nrow(data_Texture)){
+  temp = data_Texture[i,]
+  temp = temp$Plot
+
+  if(temp == 1){
+    PlotPos = rbind(PlotPos, 70/856)
+  } else if (temp == 2){
+    PlotPos = rbind(PlotPos, (406/856))
+  } else if (temp == 3){
+    PlotPos = rbind(PlotPos, (850/856))
+  }
+}
+data_Texture <- cbind(data_Texture, PlotPos)
+
+
+
+model_Texture <- lm(perSand ~ Depth_Avg + Land_Use.f + Depth_Avg*Land_Use.f, data = data_Texture)
+
+model_Texture.summary = summary(model_Texture)
+
+model_Texture.summary$pValue = pf(model_Texture.summary$fstatistic[1],model_Texture.summary$fstatistic[2],model_Texture.summary$fstatistic[3], lower.tail = FALSE)
+
+fn_statTest(model_Texture, saveTest=TRUE, theme_presentation)
+
+summary(model_Texture)
+
+# Percentage Sand by Depth and Land Management
+p1 <- ggplot(data = data_Texture) +
+  geom_point(mapping = aes(x = perSand, y = Depth_Avg, color = Land_Use.f, shape = Land_Use.f), size = 3) +
+  fn_xLim(50,100) +
+  fn_yLimR(0,80) +
+  guides(shape = "none") +
+  labs(
+    # title = "Texture by Depth and Land Use",
+    # subtitle = TeX(paste0("Model Significance: ","p<<0.01","; df=",model_Texture$df.residual[1],"; Adjusted-R$^{2}$=",round(model_Texture.summary$adj.r.squared, digits = 2))),
+    color = TeX("$\\bf{Land\\,Use}"),
+    x = TeX("$\\bf{Percent\\,Sand}"),
+    y = TeX("$\\bf{Sample\\,Depth}\\,(cm)")
+  ) + theme_presentation + theme(legend.position = c (0.95, 0.95), legend.justification = c("right", "top"))
+
+# Plot percent sand by Land Management
+p2 <- ggplot() +
+  addBoxPlot(data_Texture$Land_Use.f, data_Texture$perSand) +
+  fn_yLim(50,100) +
+  labs(
+    # title = "Percent Sand by Kwiakah Territory Land Management",
+    x = TeX("$\\bf{Land\\,Management}"),
+    y = TeX("$\\bf{Percent\\,Sand}")
+  ) + theme_presentation
+
+p3 <- (p1 + p2 + plot_layout(widths = c(2,1)))
+
+print(p3)
+
+ggsave (
+  filename = "Fig_TextureModel.png",
+  plot = p3,
+  device = png(),
+  path = "./OUTPUT",
+  scale = 1,
+  width = 23.88,
+  height = 10.78,
+  units = c ("cm"),
+  dpi = 300,
+  limitsize = TRUE,
+  bg = NULL,
+  create.dir = FALSE
+)
+  
+
+
+
+
+
+
+# Preliminary Plant Available Nutrients  
+  
+ggplot() +
+  addBoxPlot(data$Land_Use.f, data$Si_Acetic) +
+  fn_yLim(0,250) +
+  labs(
+    title = "Title",
+    x = "X Values",
+    y = "Y Values"
+  ) + theme_presentation
+
+ggplot() +
+  addBoxPlot(data$Land_Use.f, data$Si_Acetic) +
+  fn_yLim(0,250) +
+  labs(
+    title = "Title",
+    x = "X Values",
+    y = "Y Values"
+  ) + theme_presentation
+
+ggplot() +
+  addBoxPlot(data$Land_Use.f, data$Si_Acetic) +
+  fn_yLim(0,250) +
+  labs(
+    title = "Title",
+    x = "X Values",
+    y = "Y Values"
+  ) + theme_presentation
+
+ggplot() +
+  addBoxPlot(data$Land_Use.f, data$Si_Acetic) +
+  fn_yLim(0,250) +
+  labs(
+    title = "Title",
+    x = "X Values",
+    y = "Y Values"
+  ) + theme_presentation
 
 
 
