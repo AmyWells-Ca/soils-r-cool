@@ -225,4 +225,50 @@ addBoxPlot = function(xValues, yValues){
   )
 }
 
+
+
+fn_compare = function(variable, variableName = variable, compareAxis = "y", compareMode = 0){
+  # Compare Modes
+  # 0 --> Average
+  variable.avg = mean(variable, na.rm = TRUE)
+  
+  # 1 --> Min to Max Range
+  variable.min = min(variable, na.rm = TRUE)
+  variable.max = max(variable, na.rm = TRUE)
+
+  # X axis or Y Axis
+  if(compareAxis == "y"){
+    if(compareMode == 0){
+      return(
+        last_plot()+
+          geom_hline(yintercept = variable.avg, linetype=2)
+        )
+      
+    } else if (compareMode == 1){
+      return(
+        last_plot() + 
+          geom_hline(yintercept = variable.max, linetype=2) + 
+          annotation_raster("#d3d3d360", -Inf, Inf, variable.min, variable.max) + 
+          geom_hline(yintercept = variable.min, linetype=2)
+      )
+    }
+  } else if(compareAxis == "x") {
+    if(compareMode == 0){
+      return(
+        last_plot()+
+          geom_vline(xintercept = variable.avg, linetype=2)
+      )
+      
+    } else if (compareMode == 1){
+      return(
+        last_plot() + 
+          geom_vline(xintercept = variable.max, linetype=2) + 
+          annotation_raster("#d3d3d360", variable.min, variable.max, -Inf, Inf) + 
+          geom_vline(xintercept = variable.min, linetype=2)
+      )
+    }
+  }
+  return()
+}
+
 ################################################################################
