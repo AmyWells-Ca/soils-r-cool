@@ -53,47 +53,6 @@ data$Land_Use.f <- as.factor(data$Land_Use)
 data_depth <- filter(data, Type == "Pit")
 data_landUse <- filter(data, Depth_Top == 0)
 
-# Scatterplot Matrix
-
-pairs(~ 
-        Depth_Avg +
-        Land_Use_Factor +
-        perSand +
-        perSilt +
-        perClay +
-        pH_H2O +
-        pH_CaCl2 +
-        pan_Al +
-        pan_Ca +
-        pan_Cu +
-        pan_Fe +
-        pan_K +
-        pan_Mg +
-        pan_Mn +
-        pan_Na +
-        pan_P +
-        pan_S +
-        pan_Zn 
-        , data = data, 
-        main = "Plant Available Nutrients Scatterplot Matrix on Kwiakah First Nation Soils"
-)
-
-pairs(~
-        Depth_Avg +
-        Land_Use_Factor +
-        perSand +
-        perSilt +
-        perClay +
-        pH_H2O +
-        pH_CaCl2 +
-        Si_CaCl2 +
-        Si_Acetic +
-        Oxa_Al +
-        Oxa_Fe +
-        Oxa_Si
-        , data = data_depth, 
-        main = "Silicon Concentrations Scatterplot Matrix on Kwiakah First Nation Soils"
-)
 
 ################################################################################
 #                                                                              #
@@ -261,7 +220,7 @@ fn_statTest = function(testModel, testTheme = theme_presentation, saveTest = FAL
 
 model_pH = lm(pH_CaCl2 ~ pH_H2O, data=data)
 model_DSi_depth <- lm(Si_CaCl2 ~ Depth_Top, data=data_depth)
-model_DSi_land <- lm(Si_CaCl2 ~ Land_Use_Factor, data=data_landUse)
+model_DSi_land <- lm(Si_CaCl2 ~ Land_Use.f, data=data_landUse)
 
 fn_statTest(model_pH)
 fn_statTest(model_DSi_depth, saveTest = TRUE)
@@ -340,28 +299,47 @@ data_Texture = filter(data, perSand != 0)
 
 # Approximate Position Along Transects
 
-### Transect B Length: 856 pixels
-### P1 Pos: 70 pixels
-### P2 Pos: 406 Pixels
-### P3 Pos: 850 Pixels
+### Transect B Length: 920 pixels
+### P1 Pos: 134 pixels
+### P2 Pos: 470 Pixels
+### P3 Pos: 912 Pixels
+
+Plot_Position <- c()
 
 for(i in 1:nrow(data_Texture)){
   temp = data_Texture[i,]
   temp = temp$Plot
 
   if(temp == 1){
-    PlotPos = rbind(PlotPos, 70/856)
+    Plot_Position = rbind(Plot_Position, (134/920))
   } else if (temp == 2){
-    PlotPos = rbind(PlotPos, (406/856))
+    Plot_Position = rbind(Plot_Position, (470/920))
   } else if (temp == 3){
-    PlotPos = rbind(PlotPos, (850/856))
+    Plot_Position = rbind(Plot_Position, (912/920))
   }
 }
-data_Texture <- cbind(data_Texture, PlotPos)
+data_Texture <- cbind(data_Texture, Plot_Position)
+
+# Modelling by Depth Only
+model_Texture <- lm(perSand ~ Depth_Avg, data = data_Texture)
+
+# Modelling by Position along Transect (0 to 1)
+model_Texture_position <- lm(perSand ~ Depth_Avg + Plot_Position + Depth_Avg*Plot_Position, data = data_Texture)
+
+# Modeling by "Classified" Land Use
+model_Texture_landUse <- lm(perSand ~ Depth_Avg + Land_Use.f + Depth_Avg*Land_Use.f, data = data_Texture)
+
+summary(model_Texture)
+summary(model_Texture_position)
+summary(model_Texture_landUse)
+
+Anova(model_Texture, type=c("III"))
+Anova(model_Texture_position, type=c("III"))
+Anova(model_Texture_landUse, type=c("III"))
 
 
 
-model_Texture <- lm(perSand ~ Depth_Avg + Land_Use.f + Depth_Avg*Land_Use.f, data = data_Texture)
+model_Texture <- lm(perSand ~ Depth_Avg + Plot_Position + Depth_Avg*Plot_Position, data = data_Texture)
 
 model_Texture.summary = summary(model_Texture)
 
@@ -370,6 +348,8 @@ model_Texture.summary$pValue = pf(model_Texture.summary$fstatistic[1],model_Text
 fn_statTest(model_Texture, saveTest=TRUE, theme_presentation)
 
 summary(model_Texture)
+
+anova(model_Texture)
 
 # Percentage Sand by Depth and Land Management
 p1 <- ggplot(data = data_Texture) +
