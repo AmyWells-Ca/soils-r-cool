@@ -1,0 +1,228 @@
+################################################################################
+#                                          
+#   Project Initialization Code & Graphing Functions
+#                                          
+################################################################################
+#
+# CONTACT INFORMATION
+#
+#   Author: Amy Wells
+#   Email 1: amys2001@student.ubc.ca
+#   Email 2: github@amywells.ca
+#   Start Date: March 9, 2026
+#
+################################################################################
+
+# Libraries
+# install pacman (package manager) if needed
+if (!require("pacman")) install.packages("pacman")
+
+# Load contributed packages with pacman
+pacman::p_load(
+  ragg,
+  tidyverse,  # Base
+  dplyr,      # Analysis
+  remote,     # Install package from GitHub
+  readxl,     # Import Excel files
+  writexl,    # Write Excel files
+  emmeans,    # Estimate Means
+  car,        # Type III Anova Analysis
+  styler,     # Automatic cleanup 
+  renv,       # Save and Re-upload environment
+  systemfonts,# Times New Roman and Aral
+  latex2exp,  # Latex based figure captions
+  ggplot2,    # GGPlot
+  glue,       # Variable 
+  # plotly,     # Interactive plots
+  # DT,         # Interactive tables
+  patchwork   # Combine charts together
+)
+
+# Set Render Engine
+knitr::opts_chunk$set(dev = "ragg_png")
+
+################################################################################
+#                                                                              #
+#                         Themes for ggplot2 Figures                           #
+#                                                                              #
+################################################################################
+system_fonts()
+match_fonts("Times New Roman")
+match_fonts("Arial")
+
+## Base Theme (Replicates style of graphs Amy makes in excel)
+
+theme_main = theme_gray() + theme(
+  panel.background = element_rect(fill = "white"),
+  panel.border = element_rect(color = "black", linetype = "solid"),
+  panel.grid.major = element_line(color = "lightgray", linetype = "dashed"),
+  plot.background = element_rect(fill = "white"),
+  legend.position = c(0.95, 0.95),
+  legend.justification = c("right", "top"),
+  legend.box.just = "right",
+  legend.margin = margin(3, 3, 3, 3)
+)
+
+## Changes font to Arial (for Presentations)
+theme_presentation = theme(
+  plot.title = element_text(size = 12, family = "Arial", face = "bold", color = "black"),
+  plot.subtitle = element_text(size = 11, family = "Arial", color = "black"),
+  legend.title = element_text(size = 10, family = "Arial"),
+  axis.title.x = element_text(size = 12, family = "Arial"),
+  axis.title.y = element_text(size = 12, family = "Arial"),
+  axis.text.x = element_text(size = 10, family = "Arial"),
+  axis.text.y = element_text(size = 10, family = "Arial")
+)
+
+## Changes font to Times New Roman (for Papers)
+theme_paper = theme(
+  plot.title = element_text(size = 12, family = "Times New Roman", face = "bold", color = "black"),
+  plot.subtitle = element_text(size = 11, family = "Times New Roman", color = "black"),
+  legend.title = element_text(size = 10, family = "Times New Roman"),
+  axis.title.x = element_text(size = 12, family = "Times New Roman"),
+  axis.title.y = element_text(size = 12, family = "Times New Roman"),
+  axis.text.x = element_text(size = 10, family = "Times New Roman"),
+  axis.text.y = element_text(size = 10, family = "Times New Roman")
+)
+
+## Updates Default Theme
+theme_set(theme_main)
+
+################################################################################
+#                                                                              #
+#               Process to Test for Statistical Significance                   #
+#                                                                              #
+################################################################################
+#
+# Step 1. Create model for testing
+# Step 2. Check model assumptions
+#        - Linearity --> Plot errors of model
+#        - Equal Variance
+#        - Normality --. Shapiro-Wilk Test on n < 30
+#        - Spatial and Temporal Independence
+#
+#
+# Step 3.  Is the model significant?
+#        - F-Test
+#            p < 0.05 --> Statistically significant model
+#            0.05 < p < 0.10 --> Potential statistically significant model
+#            p > 0.10 --> Not statistically significant model
+#
+#
+# Step 4. Which of the variables are statistically significant?
+#         - TYPE III ANOVA TESTING
+#         - Partial F-Tests using the car package
+#
+#
+# Step 5. Are there differences between levels?
+#        - Pairwise T-Test**
+#        - Bonferroni Adjusted T-Test
+#        - Scheffe's Test
+#
+################################################################################
+
+fn_statTest = function(testModel, testTheme = theme_presentation, saveTest = FALSE){
+  
+  statTest_residuals = resid(testModel)
+  statTest_fitted = fitted(testModel)
+  statTest_formula = deparse1(formula(testModel))
+  statTest_summary = summary(testModel)
+  
+  ## Plot Model
+  p1 <- ggplot(data = testModel) +
+    geom_point(mapping =aes(x = testModel$model[[1]], y = statTest_fitted)) +
+    labs(
+      title = glue("{substitute(testModel)} | {statTest_formula}"),
+      subtitle = glue("df={testModel$df.residual[1]}; Adjusted R Squared: {round(statTest_summary$adj.r.squared,digits=2)}"),
+      x = TeX("$\\bf{Measured\\,Values}"),
+      y = TeX("$\\bf{Predicted\\,Values}")
+    ) + testTheme
+  
+  ## Test for Linearity & Equal Variance
+  p2 <- ggplot(data = testModel) +
+    geom_point(mapping = aes(x = statTest_fitted, y = statTest_residuals)) +
+    geom_hline(aes(yintercept = 0), color="red") +
+    labs(
+      title = "Residuals vs. Predicted Values",
+      x = TeX("$\\bf{Predicted\\,Values\\,\\hat{y}}"),
+      y = TeX("$\\bf{Residuals}")
+    ) + testTheme
+  
+  ## Testing for Normality
+  p3 <- ggplot(testModel, aes(sample = statTest_residuals))+stat_qq()+stat_qq_line(color="red")+
+    labs(
+      title =  "Normality QQ Plot",
+      x = TeX("$\\bf{Theoretical}"),
+      y = TeX("$\\bf{Sample}")
+    ) + testTheme
+  
+  ## Shaprio-Wilks Test?
+  if(testModel$df.residual[1] <= 30){
+    statTest_SW <- shapiro.test(statTest_residuals)
+    statTest_SW <- statTest_SW$p.value
+    statTest_SW <- glue("Shapiro-Wilk Test P-Value: {round(statTest_SW,digits=4)}")
+  } else {
+    statTest_SW <- ""
+  }
+  
+  ## Histogram Plot
+  p4 <- ggplot(testModel, aes(x=statTest_residuals)) +
+    geom_histogram(binwidth = round(max(statTest_residuals)-min(statTest_residuals),digits=1)/5, fill = "lightgray", color="darkgray") +
+    labs(
+      title = "Histogram of Residuals",
+      subtitle = substitute(statTest_SW),
+      y = TeX("$\\bf{Count}"),
+      x = TeX("$\\bf{Residual}")
+    ) + testTheme
+  
+  p5 <- (p1) / (p2 | p3) / (p4)
+  print(p5)
+  
+  if(saveTest==TRUE){
+    ## Exports composite graph as .png
+    ggsave (
+      filename = glue("{substitute(testModel)}.png"),
+      plot = p5,
+      device = png(),
+      path = "./OUTPUT",
+      scale = 1,
+      width = 6,
+      height = 7,
+      units = c ("in"),
+      dpi = 300,
+      limitsize = TRUE,
+      bg = NULL,
+      create.dir = FALSE
+    )
+  }
+}
+
+################################################################################
+#                                                                              #
+#                             GRAPHING AIDS                                    #
+#                                                                              #
+################################################################################
+
+fn_xLim = function(localMin, localMax){
+  return(scale_x_continuous(limits = c(localMin, localMax), expand = c(0,0)))
+}
+
+fn_xLimR = function(localMin, localMax){
+  return(scale_x_reverse(limits=c(localMin, localMax), expand = c(0,0)))
+}
+
+fn_yLim = function(localMin, localMax){
+  return(scale_y_continuous(limits = c(localMin, localMax), expand = c(0,0)))
+}
+
+fn_yLimR = function(localMin, localMax){
+  return(scale_y_reverse(limits=c(localMin, localMax), expand = c(0,0)))
+}
+
+addBoxPlot = function(xValues, yValues){
+  return(
+    geom_boxplot(aes(xValues, yValues))
+  )
+}
+
+################################################################################
