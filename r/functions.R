@@ -46,6 +46,8 @@ knitr::opts_chunk$set(dev = "ragg_png")
 #                         Themes for ggplot2 Figures                           #
 #                                                                              #
 ################################################################################
+
+windowsFonts() # Added to try fixing inconsistent bug with fonts
 system_fonts()
 match_fonts("Times New Roman")
 match_fonts("Arial")

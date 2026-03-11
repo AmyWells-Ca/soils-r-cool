@@ -125,7 +125,12 @@ ggsave (
   
 
 
+ggplot(data = data) +
+  geom_point(mapping = aes(x = Latitude, y = Longitude, color = pH_H2O, size = pH_CaCl2))+
+  fn_yLimR(-125.35,-125.365) +
+  fn_xLimR(50.555,50.5570)
 
+ggplot(data = data) + 
 
 
 

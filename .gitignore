@@ -49,5 +49,6 @@ po/*~
 rsconnect/
 
 # Hides Source Data
-input/*
-output/*.png
+*.csv
+*.xlsx
+*.png

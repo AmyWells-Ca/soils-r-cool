@@ -22,7 +22,7 @@ data <- readxl::read_xlsx("./input/readable_data.xlsx", sheet = "Machine Readabl
 
 data$Land_Use.f <- as.factor(data$Land_Use)
 
-data = filter(data, Type == "Pit")
+# data = filter(data, Type == "Pit")
 
 ################################################################################
 #                                                                              #
@@ -31,26 +31,26 @@ data = filter(data, Type == "Pit")
 ################################################################################
 
 # New Variable for Position Along Transect (Empty to start)
-Plot_Position <- c()
+# Plot_Position <- c()
 
 # Note for Future Amy --> Need to find a better way of getting point along transect for the microplots
 
 # Calculate position of each plot using values measured from Kaya's map
-for(i in 1:nrow(data)){
-  temp = data[i,]
-  temp = temp$Plot
-  
-  if(temp == 1){
-    Plot_Position = rbind(Plot_Position, (134/920))
-  } else if (temp == 2){
-    Plot_Position = rbind(Plot_Position, (470/920))
-  } else if (temp == 3){
-    Plot_Position = rbind(Plot_Position, (912/920))
-  }
-}
+# for(i in 1:nrow(data)){
+#   temp = data[i,]
+#   temp = temp$Plot
+#   
+#   if(temp == 1){
+#     Plot_Position = rbind(Plot_Position, (134/920))
+#   } else if (temp == 2){
+#     Plot_Position = rbind(Plot_Position, (470/920))
+#   } else if (temp == 3){
+#     Plot_Position = rbind(Plot_Position, (912/920))
+#   }
+# }
 
 # Add calculated values into the data_texture data frame
-data <- cbind(data, Plot_Position)
+# data <- cbind(data, Plot_Position)
 
 # Filter data to sites that have textural data
 data_Texture <- filter(data, perSand != 0)
@@ -174,15 +174,15 @@ data_Texture <- filter(data, perSand != 0)
 ################################################################################
 
 # Simple linear model to predict the percent sand by depth in the soil
-model_Texture = lm(perSand ~ Depth_Avg + Plot_Position, data = data_Texture)
+model_Texture = lm(perSand ~ Depth_Avg + Altitude + Latitude, data = data_Texture)
 
 # Model Evaluation Tests (Should you choose to review them again)
 summary(model_Texture)
 Anova(model_Texture, type = c("III"))
-fn_statTest(model_Texture, theme_presentation, saveTest = TRUE)
+fn_statTest(model_Texture, theme_paper, saveTest = TRUE)
 
 predictSand = predict(model_Texture, data)
-data = cbind(data, predictSand)
+data$predictSand = predictSand
 
 # Calculating slope + intercepts for model_Texture
 
@@ -190,7 +190,7 @@ p1 <- ggplot(data = data) +
   geom_point(mapping = aes(x=perSand, y = Depth_Avg, color = Land_Use.f), shape=2) +
   geom_point(mapping = aes(x=predictSand, y = Depth_Avg), shape = 1) +
   fn_yLimR(0, 80) +
-  fn_xLim(50,100) +
+  fn_xLim(40,100) +
   labs(
     title = "Modeled %Sand by Depth",
     color = "Land Use",
