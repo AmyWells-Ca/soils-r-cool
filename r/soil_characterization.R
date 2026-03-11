@@ -44,7 +44,6 @@ data_Texture = filter(data, perSand != 0)
 ### P3 Pos: 912 Pixels
 
 Plot_Position <- c()
-
 for(i in 1:nrow(data_Texture)){
   temp = data_Texture[i,]
   temp = temp$Plot

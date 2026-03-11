@@ -20,6 +20,8 @@ source("./r/functions.R")
 # Import Main Data set
 data <- readxl::read_xlsx("./input/readable_data.xlsx", sheet = "Machine Readable")
 
+data$Land_Use.f <- as.factor(data$Land_Use)
+
 data = filter(data, Type == "Pit")
 
 ################################################################################
@@ -61,7 +63,7 @@ data_Texture <- filter(data, perSand != 0)
 #
 # % Sand = Depth + Plot_Position + Interaction
 #
-# model_Texture.2 = lm(perSand ~ Depth_Avg + Plot_Position + Depth_Avg*Plot_Position, data = data_Texture)
+# model_Texture.2 = lm(perSand ~ Depth_Avg*Plot_Position, data = data_Texture)
 # 
 # summary(model_Texture.2)
 # Anova(model_Texture.2, type = c("III"))
@@ -184,13 +186,14 @@ data = cbind(data, predictSand)
 
 # Calculating slope + intercepts for model_Texture
 
-ggplot(data = data) +
-  geom_point(mapping = aes(x=perSand, y = Depth_Avg), color = "red", shape=2) +
-  geom_point(mapping = aes(x=predictSand, y = Depth_Avg)) +
+p1 <- ggplot(data = data) +
+  geom_point(mapping = aes(x=perSand, y = Depth_Avg, color = Land_Use.f), shape=2) +
+  geom_point(mapping = aes(x=predictSand, y = Depth_Avg), shape = 1) +
   fn_yLimR(0, 80) +
   fn_xLim(50,100) +
   labs(
-    title = "Modeled Textures of Kwiakah First Nation Soils by Depth",
+    title = "Modeled %Sand by Depth",
+    color = "Land Use",
     x = TeX("$\\bf{Percent\\,Sand}"),
     y = TeX("$\\bf{Sampling Depth}\\,(cm)")
   )
