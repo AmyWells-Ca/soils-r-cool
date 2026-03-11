@@ -184,7 +184,7 @@ fn_statTest = function(testModel, testTheme = theme_presentation, saveTest = FAL
       filename = glue("{substitute(testModel)}.png"),
       plot = p5,
       device = png(),
-      path = "./OUTPUT",
+      path = "./output",
       scale = 1,
       width = 6,
       height = 7,
