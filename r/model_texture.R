@@ -22,7 +22,72 @@ data <- readxl::read_xlsx("./input/readable_data.xlsx", sheet = "Machine Readabl
 
 data$Land_Use.f <- as.factor(data$Land_Use)
 
-# data = filter(data, Type == "Pit")
+# Filter data to sites that have textural data
+data_Texture <- filter(data, perSand != 0)
+
+################################################################################
+#
+#   Plot perSand by Land Use and perSand by Depth
+#
+################################################################################
+
+
+# Reference Line from Lavkulich and Rowels, 1970
+# Lavkulich, L. M., & Rowles, C. A. (1970). Effect of different land use practices on a British Columbia Spodsol. Soil Science, 111(5), 323–329. https://doi.org/10.1097/00010694-197105000-00010
+
+p1 <- ggplot(data = data_Texture) +
+  geom_point(mapping = aes(x = perSand, y = Depth_Avg, colour = Land_Use.f, shape = Land_Use.f), size = 3) +
+  geom_abline(intercept = 147.639686684, slope = -2.55874673629, linetype = 2) +
+  annotate("text", label = "Lavkulich & Rowels, 1970  >", x = 77, y = 75) +
+  fn_xLim(50,100) +
+  fn_yLimR(0, 80) +
+  scale_colour_manual(
+    name = "Land Use",
+    labels = c("Cutblock", "Forest Garden", "Periphery Forest"),
+    values = c("darkorange2","darkgreen","azure4")
+  ) +
+  scale_shape_manual(
+    name = "Land Use",
+    labels = c("Cutblock", "Forest Garden", "Periphery Forest"),
+    values = c(15,16,17)
+  ) +
+  labs(
+    y = TeX("$\\bf{Sampling\\,Depth}\\,(cm)"),
+    x = TeX("$\\bf{Percent\\,Sand}\\,(\\%)")
+  ) + theme_presentation
+
+p2 <- ggplot(data = data_Texture) +
+  geom_boxplot(mapping=aes(x=Land_Use.f, y=perSand, fill = Land_Use.f), color = "black") +
+  scale_fill_manual(
+    name = "Land Use",
+    labels = c("Cutblock", "Forest Garden", "Periphery Forest"),
+    values = c("darkorange2","darkgreen","azure4")
+  ) +
+  guides(fill = "none") +
+  fn_yLim(60,100) +
+  labs(
+    x = TeX("$\\bf{Land\\,Use}"),
+    y = TeX("$\\bf{Percent\\,Sand}\\,(\\%)")
+  ) + theme_presentation
+
+p3 <- (p1 + p2 + plot_layout(widths = c(2,1)))
+
+print(p3)
+
+ggsave (
+  filename = "figure_n_DescribedTexture.png",
+  plot = p3,
+  device = png(),
+  path = "./output",
+  scale = 1,
+  width = 23.88,
+  height = 10.78,
+  units = c ("cm"),
+  dpi = 300,
+  limitsize = TRUE,
+  bg = NULL,
+  create.dir = FALSE
+)
 
 ################################################################################
 #                                                                              #
@@ -32,8 +97,6 @@ data$Land_Use.f <- as.factor(data$Land_Use)
 
 # New Variable for Position Along Transect (Empty to start)
 # Plot_Position <- c()
-
-# Note for Future Amy --> Need to find a better way of getting point along transect for the microplots
 
 # Calculate position of each plot using values measured from Kaya's map
 # for(i in 1:nrow(data)){
@@ -51,9 +114,6 @@ data$Land_Use.f <- as.factor(data$Land_Use)
 
 # Add calculated values into the data_texture data frame
 # data <- cbind(data, Plot_Position)
-
-# Filter data to sites that have textural data
-data_Texture <- filter(data, perSand != 0)
 
 ################################################################################
 #                                                                              #
@@ -179,36 +239,45 @@ model_Texture = lm(perSand ~ Depth_Avg + Altitude + Latitude, data = data_Textur
 # Model Evaluation Tests (Should you choose to review them again)
 summary(model_Texture)
 Anova(model_Texture, type = c("III"))
-fn_statTest(model_Texture, theme_paper, saveTest = TRUE)
+fn_statTest(model_Texture, theme_presentation, saveTest = TRUE)
 
 predictSand = predict(model_Texture, data)
 data$predictSand = predictSand
 
 # Calculating slope + intercepts for model_Texture
 
-p1 <- ggplot(data = data) +
-  geom_point(mapping = aes(x=perSand, y = Depth_Avg, color = Land_Use.f), shape=2) +
-  geom_point(mapping = aes(x=predictSand, y = Depth_Avg), shape = 1) +
+p4 <- ggplot(data = data) +
+  geom_point(mapping = aes(x=perSand, y = Depth_Avg, colour = Land_Use.f, shape = Land_Use.f), size = 3) +
+  geom_point(mapping = aes(x=predictSand, y = Depth_Jitter, colour = Land_Use.f, shape = Land_Use.f), size = 1) +
+  scale_shape_manual(
+    name = "Land Use",
+    labels = c("Cutblock", "Forest Garden", "Periphery Forest"),
+    values = c(15,16,17)
+  ) +
+  scale_colour_manual(
+    name = "Land Use",
+    labels = c("Cutblock", "Forest Garden", "Periphery Forest"),
+    values = c("darkorange2","darkgreen","azure4")
+  ) +
   fn_yLimR(0, 80) +
-  fn_xLim(40,100) +
+  fn_xLim(50,100) +
   labs(
-    title = "Modeled %Sand by Depth",
-    color = "Land Use",
-    x = TeX("$\\bf{Percent\\,Sand}"),
-    y = TeX("$\\bf{Sampling Depth}\\,(cm)")
+    x = TeX("$\\bf{Percent\\,Sand}\\,(\\%)"),
+    y = TeX("$\\bf{Depth}\\,(cm)")
   )
 
 ggsave (
   filename = "predicted_texture.png",
-  plot = p1,
+  plot = p4,
   device = png(),
   path = "./output",
   scale = 1,
-  width = 4,
-  height = 4,
-  units = c ("in"),
+  width = 14.64,
+  height = 10.78,
+  units = c ("cm"),
   dpi = 300,
   limitsize = TRUE,
   bg = NULL,
   create.dir = FALSE
 )
+ 
