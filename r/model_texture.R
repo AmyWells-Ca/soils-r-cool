@@ -77,7 +77,7 @@ print(p3)
 ggsave (
   filename = "figure_n_DescribedTexture.png",
   plot = p3,
-  device = png(),
+  device = agg_png,
   path = "./output",
   scale = 1,
   width = 23.88,

@@ -35,7 +35,8 @@ pacman::p_load(
   glue,       # Variable 
   # plotly,     # Interactive plots
   # DT,         # Interactive tables
-  patchwork   # Combine charts together
+  patchwork,  # Combine charts together
+  moderndive  # Paralell Lines???
 )
 
 # Set Render Engine
@@ -51,6 +52,7 @@ windowsFonts() # Added to try fixing inconsistent bug with fonts
 system_fonts()
 match_fonts("Times New Roman")
 match_fonts("Arial")
+match_fonts("Trebuchet MS")
 
 ## Base Theme (Replicates style of graphs Amy makes in excel)
 
@@ -59,21 +61,17 @@ theme_main = theme_gray() + theme(
   panel.border = element_rect(color = "black", linetype = "solid"),
   panel.grid.major = element_line(color = "lightgray", linetype = "dashed"),
   plot.background = element_rect(fill = "white"),
-  legend.position = c(0.95, 0.95),
-  legend.justification = c("right", "top"),
-  legend.box.just = "right",
-  legend.margin = margin(3, 3, 3, 3)
 )
 
-## Changes font to Arial (for Presentations)
+## Changes font to Trebuchet MS (for Presentations)
 theme_presentation = theme(
-  plot.title = element_text(size = 12, family = "Arial", face = "bold", color = "black"),
-  plot.subtitle = element_text(size = 11, family = "Arial", color = "black"),
-  legend.title = element_text(size = 10, family = "Arial"),
-  axis.title.x = element_text(size = 12, family = "Arial"),
-  axis.title.y = element_text(size = 12, family = "Arial"),
-  axis.text.x = element_text(size = 10, family = "Arial"),
-  axis.text.y = element_text(size = 10, family = "Arial")
+  plot.title = element_text(size = 12, family = "Trebuchet MS", face = "bold", color = "black"),
+  plot.subtitle = element_text(size = 11, family = "Trebuchet MS", color = "black"),
+  legend.title = element_text(size = 10, family = "Trebuchet MS"),
+  axis.title.x = element_text(size = 12, family = "Trebuchet MS"),
+  axis.title.y = element_text(size = 12, family = "Trebuchet MS"),
+  axis.text.x = element_text(size = 10, family = "Trebuchet MS"),
+  axis.text.y = element_text(size = 10, family = "Trebuchet MS")
 )
 
 ## Changes font to Times New Roman (for Papers)
@@ -85,6 +83,13 @@ theme_paper = theme(
   axis.title.y = element_text(size = 12, family = "Times New Roman"),
   axis.text.x = element_text(size = 10, family = "Times New Roman"),
   axis.text.y = element_text(size = 10, family = "Times New Roman")
+)
+
+legend_tr = theme(
+  legend.position = c(0.95, 0.95),
+  legend.justification = c("right", "top"),
+  legend.box.just = "right",
+  legend.margin = margin(3, 3, 3, 3)
 )
 
 ## Updates Default Theme
@@ -185,7 +190,7 @@ fn_statTest = function(testModel, testTheme = theme_presentation, saveTest = FAL
     ggsave (
       filename = glue("{substitute(testModel)}.png"),
       plot = p5,
-      device = png(),
+      device = agg_png,
       path = "./output",
       scale = 1,
       width = 6,
@@ -198,6 +203,18 @@ fn_statTest = function(testModel, testTheme = theme_presentation, saveTest = FAL
     )
   }
 }
+
+################################################################################
+#                                                                              #
+#                          CONSISTENT COLOURS                                  #
+#                                                                              #
+################################################################################
+
+col_CB = "darkorange"
+
+col_PF = "chartreuse"
+
+col_FG = "darkgreen"
 
 ################################################################################
 #                                                                              #
@@ -219,6 +236,36 @@ fn_yLim = function(localMin, localMax){
 
 fn_yLimR = function(localMin, localMax){
   return(scale_y_reverse(limits=c(localMin, localMax), expand = c(0,0)))
+}
+
+fn_shapeScale = function(){
+  return(
+      scale_shape_manual(
+      name = "Land Use",
+      labels = c("Cutblock", "Periphery Forest", "Forest Garden"),
+      values = c(15,16,17)
+    )
+  )
+}
+
+fn_colourScale = function(){
+  return(
+    scale_colour_manual(
+      name = "Land Use",
+      labels = c("Cutblock", "Periphery Forest", "Forest Garden"),
+      values = c(col_CB,col_PF,col_FG)
+    )
+  )
+}
+
+fn_fillScale = function(){
+  return(
+    scale_fill_manual(
+      name = "Land Use",
+      labels = c("Cutblock", "Periphery Forest", "Forest Garden"),
+      values = c(col_CB,col_PF,col_FG)
+    )
+  )
 }
 
 addBoxPlot = function(xValues, yValues){

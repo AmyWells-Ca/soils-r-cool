@@ -20,118 +20,184 @@ source("./r/functions.R")
 data <- readxl::read_xlsx("./input/readable_data.xlsx", sheet = "Machine Readable")
 
 # Create Factors from Data
-data$Transect.f <- as.factor(data$Transect)
-data$Type.f <- as.factor(data$Type)
 data$Land_Use.f <- as.factor(data$Land_Use)
+data$Land_Use.f <- factor(data$Land_Use.f, levels = c("Cutblock", "Periphery", "Forest Garden"))
 
 data_depth <- filter(data, Type == "Pit")
 data_landUse <- filter(data, Depth_Top == 0)
 
 ################################################################################
 #
-# Soil Texture
+# pH
 #
 ################################################################################
 
-# Filter data to only include data where texture was determined
-data_Texture = filter(data, perSand != 0)
+# pH by Land Use
 
-# Approximate Position Along Transects
+pairwise.t.test(x = data_landUse$pH_H2O,
+                g = data_landUse$Land_Use.f,
+                p.adjust.method = "bonferroni"
+)
 
-### Transect B Length: 920 pixels
-### P1 Pos: 134 pixels
-### P2 Pos: 470 Pixels
-### P3 Pos: 912 Pixels
-
-Plot_Position <- c()
-for(i in 1:nrow(data_Texture)){
-  temp = data_Texture[i,]
-  temp = temp$Plot
-
-  if(temp == 1){
-    Plot_Position = rbind(Plot_Position, (134/920))
-  } else if (temp == 2){
-    Plot_Position = rbind(Plot_Position, (470/920))
-  } else if (temp == 3){
-    Plot_Position = rbind(Plot_Position, (912/920))
-  }
-}
-data_Texture <- cbind(data_Texture, Plot_Position)
-
-# Modelling by Depth Only
-model_Texture <- lm(perSand ~ Depth_Avg, data = data_Texture)
-
-# Modelling by Position along Transect (0 to 1)
-model_Texture_position <- lm(perSand ~ Depth_Avg + Plot_Position + Depth_Avg*Plot_Position, data = data_Texture)
-
-# Modeling by "Classified" Land Use
-model_Texture_landUse <- lm(perSand ~ Depth_Avg + Land_Use.f + Depth_Avg*Land_Use.f, data = data_Texture)
-
-summary(model_Texture)
-summary(model_Texture_position)
-summary(model_Texture_landUse)
-
-Anova(model_Texture, type=c("III"))
-Anova(model_Texture_position, type=c("III"))
-Anova(model_Texture_landUse, type=c("III"))
-
-fn_statTest(model_Texture, saveTest=TRUE, theme_presentation)
-fn_statTest(model_Texture_position, saveTest=TRUE, theme_presentation)
-fn_statTest(model_Texture_landUse, saveTest=TRUE, theme_presentation)
-
-
-# Percentage Sand by Depth and Land Management
-p1 <- ggplot(data = data_Texture) +
-  geom_point(mapping = aes(x = perSand, y = Depth_Avg, color = Land_Use.f, shape = Land_Use.f), size = 3) +
-  fn_xLim(50,100) +
-  fn_yLimR(0,80) +
-  guides(shape = "none") +
+p1 <- ggplot(data = data_landUse) +
+  geom_boxplot(mapping = aes(x=Land_Use.f, y = pH_H2O, fill = Land_Use.f), color = "black") +
+  fn_fillScale() +
+  fn_yLim(2.5,6) +
   labs(
-    # title = "Texture by Depth and Land Use",
-    # subtitle = TeX(paste0("Model Significance: ","p<<0.01","; df=",model_Texture$df.residual[1],"; Adjusted-R$^{2}$=",round(model_Texture.summary$adj.r.squared, digits = 2))),
-    color = TeX("$\\bf{Land\\,Use}"),
-    x = TeX("$\\bf{Percent\\,Sand}"),
-    y = TeX("$\\bf{Sample\\,Depth}\\,(cm)")
-  ) + theme_presentation + theme(legend.position = c (0.95, 0.95), legend.justification = c("right", "top"))
+    x = TeX("$\\bf{Land\\,Use}"),
+    y = TeX("$\\bf{pH\\,\\i\\n\\,H_{2}O}")
+  ) + theme_presentation + theme(axis.text.x = element_blank(), axis.title.x = element_blank())
 
-# Plot percent sand by Land Management
-p2 <- ggplot() +
-  addBoxPlot(data_Texture$Land_Use.f, data_Texture$perSand) +
-  fn_yLim(50,100) +
+
+
+pairwise.t.test(x = data_landUse$pH_CaCl2,
+                g = data_landUse$Land_Use.f,
+                p.adjust.method = "bonferroni"
+)
+
+p2 <- ggplot(data = data_landUse) +
+  geom_boxplot(mapping = aes(x=Land_Use.f, y = pH_CaCl2, fill = Land_Use.f), color = "black") +
+  fn_fillScale() +
+  fn_yLim(2.5,6) +
   labs(
-    # title = "Percent Sand by Kwiakah Territory Land Management",
-    x = TeX("$\\bf{Land\\,Management}"),
-    y = TeX("$\\bf{Percent\\,Sand}")
-  ) + theme_presentation
+    x = TeX("$\\bf{Land\\,Use}"),
+    y = TeX("$\\bf{pH\\,\\i\\n\\,0.1M\\,CaCl_{2}}")
+  ) + theme_presentation + theme(axis.text.x = element_blank(), axis.title.x = element_blank())
 
-p3 <- (p1 + p2 + plot_layout(widths = c(2,1)))
 
-print(p3)
+pairwise.t.test(x = data_landUse$pH_Delta,
+                g = data_landUse$Land_Use.f,
+                p.adjust.method = "bonferroni"
+)
+
+p3 <- ggplot(data = data_landUse) +
+  geom_boxplot(mapping = aes(x=Land_Use.f, y = pH_Delta, fill = Land_Use.f), color = "black") +
+  fn_fillScale() +
+  fn_yLim(0,2) +
+  labs(
+    x = TeX("$\\bf{Land\\,Use}"),
+    y = TeX("$\\bf{\\Delta\\,pH}\\,( pH_{H_{2}O} - pH_{CaCl_{2}} )")
+  ) + theme_presentation + theme(axis.text.x = element_blank(), axis.title.x = element_blank())
+
+p4 <- (p1 + p2 + p3  + 
+  plot_layout(
+    guides = "collect"
+    ) + 
+  plot_annotation(
+    tag_levels = "a",
+    title = TeX("$\\bf{Pools\\,of\\,Soil\\,pH\\,by\\,Land\\,Use}"),
+    subtitle = "n = 24; Microplot Samples (n=18) & 0-15cm Layer (n=6)",
+    theme = theme_presentation
+    )
+  )
+
+p4
 
 ggsave (
-  filename = "Fig_TextureModel.png",
-  plot = p3,
-  device = png(),
-  path = "./OUTPUT",
+  filename = "KwiakahCluster_pH_LandUse.png",
+  plot = p4,
+  path = "./output",
   scale = 1,
   width = 23.88,
   height = 10.78,
   units = c ("cm"),
-  dpi = 300,
-  limitsize = TRUE,
-  bg = NULL,
-  create.dir = FALSE
+  dpi = 300
 )
-  
 
+# pH by Depth
 
-ggplot(data = data) +
-  geom_point(mapping = aes(x = Latitude, y = Longitude, color = pH_H2O, size = pH_CaCl2))+
-  fn_yLimR(-125.35,-125.365) +
-  fn_xLimR(50.555,50.5570)
+pairwise.t.test(x = data_depth$pH_H2O,
+                g = data_depth$Depth_Avg,
+                p.adjust.method = "bonferroni"
+)
 
-ggplot(data = data) + 
+p5 <- ggplot(data = data_depth) +
+  geom_point(mapping = aes(x = pH_H2O, y = Depth_Avg, colour = Land_Use.f, shape = Land_Use.f), size = 3) + 
+  fn_colourScale() +
+  fn_shapeScale() +
+  fn_xLim(3,6) +
+  fn_yLimR(0,80) +
+  labs(
+    x = TeX("$\\bf{pH\\,\\i\\n\\,H_{2}O}"),
+    y = TeX("$\\bf{Sampling\\,Depth}\\,(cm)")
+  ) + theme_presentation
 
+pairwise.t.test(x = data_depth$pH_CaCl2,
+                g = data_depth$Depth_Avg,
+                p.adjust.method = "bonferroni"
+)
+
+p6 <- ggplot(data = data_depth) +
+  geom_point(mapping = aes(x = pH_CaCl2, y = Depth_Avg, colour = Land_Use.f, shape = Land_Use.f), size = 3) + 
+  fn_colourScale() +
+  fn_shapeScale() +
+  fn_xLim(3,6) +
+  fn_yLimR(0,80) +
+  labs(
+    x = TeX("$\\bf{pH\\,\\i\\n\\,0.1M\\,CaCl_{2}}"),
+    y = TeX("$\\bf{Sampling\\,Depth}\\,(cm)")
+  ) + theme_presentation + theme(axis.title.y = element_blank())
+
+pairwise.t.test(x = data_depth$pH_Delta,
+                g = data_depth$Depth_Avg,
+                p.adjust.method = "bonferroni"
+)
+
+p7 <- ggplot(data = data_depth) +
+  geom_point(mapping = aes(x = pH_Delta, y = Depth_Avg, colour = Land_Use.f, shape = Land_Use.f), size = 3) + 
+  fn_colourScale() +
+  fn_shapeScale() +
+  fn_xLim(0,2) +
+  fn_yLimR(0,80) +
+  labs(
+    x = TeX("$\\bf{\\Delta\\,pH}\\,( pH_{H_{2}O} - pH_{CaCl_{2}} )"),
+    y = TeX("$\\bf{Sampling\\,Depth}\\,(cm)")
+  ) + theme_presentation + theme(axis.title.y = element_blank())
+
+p8 <- ((p5 + p6 + p7) + 
+  plot_layout(
+    guides = "collect"
+    ) + 
+  plot_annotation(
+    tag_levels = "a",
+    title = TeX("$\\bf{Pools\\,of\\,Soil\\,pH\\,by\\,Depth}"),
+    subtitle = "n = 24; Soil Pit Samples (n=24)",
+    theme = theme_presentation
+    )
+  )
+
+p8
+
+ggsave (
+  filename = "KwiakahCluster_pH_Depth.png",
+  plot = p8,
+  path = "./output",
+  scale = 1,
+  width = 23.88,
+  height = 10.78,
+  units = c ("cm"),
+  dpi = 300
+)
+
+#
+# pH Analytical Models
+#
+
+model_pH_H2O.d <- lm(pH_H2O ~ Depth_Avg+Land_Use.f, data = data_depth)
+model_pH_CaCl2.d <- lm(pH_CaCl2 ~ Depth_Avg+Land_Use.f, data = data_depth)
+model_pH_Delta.d <- lm(pH_Delta ~ Depth_Avg+Land_Use.f, data = data_depth)
+
+summary(model_pH_H2O.d)
+Anova(model_pH_H2O.d, type = c("III"))
+fn_statTest(model_pH_H2O.d, saveTest = FALSE)
+
+summary(model_pH_CaCl2.d)
+Anova(model_pH_CaCl2.d, type = c("III"))
+fn_statTest(model_pH_CaCl2.d, saveTest = FALSE)
+
+summary(model_pH_Delta.d)
+Anova(model_pH_Delta.d, type = c("III"))
+fn_statTest(model_pH_Delta.d, saveTest = FALSE)
 
 
 # Preliminary Plant Available Nutrients  
