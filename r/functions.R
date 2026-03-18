@@ -36,7 +36,8 @@ pacman::p_load(
   # plotly,     # Interactive plots
   # DT,         # Interactive tables
   patchwork,  # Combine charts together
-  moderndive  # Paralell Lines???
+  moderndive,  # Paralell Lines???
+  ggpubr
 )
 
 # Set Render Engine

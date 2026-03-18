@@ -18,13 +18,16 @@ source("./r/functions.R")
 
 # Import Data set
 data <- readxl::read_xlsx("./input/readable_data.xlsx", sheet = "Machine Readable")
+reference <- readxl::read_xlsx("./input/readable_data.xlsx", sheet = "Reference")
 
 # Create Factors from Data
 data$Land_Use.f <- as.factor(data$Land_Use)
 data$Land_Use.f <- factor(data$Land_Use.f, levels = c("Cutblock", "Periphery", "Forest Garden"))
 
 data_depth <- filter(data, Type == "Pit")
-data_landUse <- filter(data, Depth_Top == 0)
+data_landUse <- filter(data, Type == "Microplot")
+data_topSoil <- filter(data, Depth_Top == 0)
+data_pitTops <- filter(data_depth, Depth_Top == 0)
 
 ################################################################################
 #
@@ -39,7 +42,7 @@ pairwise.t.test(x = data_landUse$pH_H2O,
                 p.adjust.method = "bonferroni"
 )
 
-p1 <- ggplot(data = data_landUse) +
+p1 <- ggplot(data = data_topSoil) +
   geom_boxplot(mapping = aes(x=Land_Use.f, y = pH_H2O, fill = Land_Use.f), color = "black") +
   fn_fillScale() +
   fn_yLim(2.5,6) +
@@ -55,7 +58,7 @@ pairwise.t.test(x = data_landUse$pH_CaCl2,
                 p.adjust.method = "bonferroni"
 )
 
-p2 <- ggplot(data = data_landUse) +
+p2 <- ggplot(data = data_topSoil) +
   geom_boxplot(mapping = aes(x=Land_Use.f, y = pH_CaCl2, fill = Land_Use.f), color = "black") +
   fn_fillScale() +
   fn_yLim(2.5,6) +
@@ -70,7 +73,7 @@ pairwise.t.test(x = data_landUse$pH_Delta,
                 p.adjust.method = "bonferroni"
 )
 
-p3 <- ggplot(data = data_landUse) +
+p3 <- ggplot(data = data_topSoil) +
   geom_boxplot(mapping = aes(x=Land_Use.f, y = pH_Delta, fill = Land_Use.f), color = "black") +
   fn_fillScale() +
   fn_yLim(0,2) +
@@ -200,44 +203,120 @@ Anova(model_pH_Delta.d, type = c("III"))
 fn_statTest(model_pH_Delta.d, saveTest = FALSE)
 
 
-# Preliminary Plant Available Nutrients  
-  
-ggplot() +
-  addBoxPlot(data$Land_Use.f, data$Si_Acetic) +
-  fn_yLim(0,250) +
-  labs(
-    title = "Title",
-    x = "X Values",
-    y = "Y Values"
-  ) + theme_presentation
+#
+# Plant Available P, K, Ca, Mg
+#
 
-ggplot() +
-  addBoxPlot(data$Land_Use.f, data$Si_Acetic) +
-  fn_yLim(0,250) +
-  labs(
-    title = "Title",
-    x = "X Values",
-    y = "Y Values"
-  ) + theme_presentation
+pairwise.t.test(x = data_pitTops$pan_P,
+                g = data_pitTops$Land_Use.f,
+                p.adjust.method = "bonferroni"
+)
 
-ggplot() +
-  addBoxPlot(data$Land_Use.f, data$Si_Acetic) +
-  fn_yLim(0,250) +
-  labs(
-    title = "Title",
-    x = "X Values",
-    y = "Y Values"
-  ) + theme_presentation
+kruskal.test(x = data_landUse$pan_P, g = data_landUse$Land_Use.f, p.adjust.method = "bonferroni")
 
-ggplot() +
-  addBoxPlot(data$Land_Use.f, data$Si_Acetic) +
-  fn_yLim(0,250) +
-  labs(
-    title = "Title",
-    x = "X Values",
-    y = "Y Values"
-  ) + theme_presentation
+model_panP.1 <- lm(pan_P ~ Land_Use.f, data = data_landUse)
+summary(model_panP.1)
+Anova(model_panP.1, type = c("III"))
 
+ggplot(data = data_landUse) +
+  geom_point(mapping = aes(y = pan_P, x = Land_Use.f, shape = Land_Use.f), size = 3)
+
+comparisons <- list(
+  c("Cutblock", "Periphery"),
+  c("Cutblock", "Forest Garden"),
+  c("Periphery", "Forest Garden")
+)
+
+ggplot(data = data_landUse, mapping = aes(y = pan_P, x = Land_Use.f)) +
+  geom_jitter(width = 0.3) +
+  stat_summary(fun = mean, geom = "crossbar") +
+  stat_compare_means(
+    method = "wilcox.test",
+    comparisons = comparisons,
+    label = "p.format"  # numeric p-values
+  )
+
+pairwise.t.test(x = data_landUse$pan_P,
+                g = data_landUse$Land_Use.f,
+                p.adjust.method = "bonferroni"
+)
+
+
+p9 <- ggplot(data = data_landUse) +
+  geom_boxplot(mapping = aes(x = Land_Use.f, y=pan_P, fill = Land_Use.f), colour = "black") +
+  fn_fillScale() +
+  fn_yLim(0,50) +
+  labs(
+    x = TeX("$\\bf{Land\\,Use}"),
+    y = TeX("$\\bf{Plant\\,Available\\,P}\\,(mg\\,kg^{-1})")
+  )
+
+pairwise.t.test(x = data_pitTops$pan_K,
+                g = data_pitTops$Land_Use.f,
+                p.adjust.method = "bonferroni"
+)
+
+p10 <- ggplot(data = data_pitTops) +
+  geom_boxplot(mapping = aes(x = Land_Use.f, y=pan_K, fill = Land_Use.f), colour = "black") +
+  fn_fillScale() +
+  fn_yLim(0,50) +
+  labs(
+    x = TeX("$\\bf{Land\\,Use}"),
+    y = TeX("$\\bf{Plant\\,Available\\,K}\\,(mg\\,kg^{-1})")
+  )
+
+pairwise.t.test(x = data_pitTops$pan_Ca,
+                g = data_pitTops$Land_Use.f,
+                p.adjust.method = "bonferroni"
+)
+
+p11 <- ggplot(data = data_pitTops) +
+  geom_boxplot(mapping = aes(x = Land_Use.f, y=pan_Ca, fill = Land_Use.f), colour = "black") +
+  fn_fillScale() +
+  fn_yLim(0,600) +
+  labs(
+    x = TeX("$\\bf{Land\\,Use}"),
+    y = TeX("$\\bf{Plant\\,Available\\,Ca}\\,(mg\\,kg^{-1})")
+  )
+
+pairwise.wilcox.test(x = data_pitTops$pan_Mg,
+                g = data_pitTops$Land_Use.f,
+                p.adjust.method = "bonferroni"
+)
+
+p12 <- ggplot(data = data_pitTops) +
+  geom_boxplot(mapping = aes(x = Land_Use.f, y=pan_Mg, fill = Land_Use.f), colour = "black") +
+  fn_fillScale() +
+  fn_yLim(0,40) +
+  labs(
+    x = TeX("$\\bf{Land\\,Use}"),
+    y = TeX("$\\bf{Plant\\,Available\\,Mg}\\,(mg\\,kg^{-1})")
+  )
+
+p13 <- ((p9 + p10 + p11 + p12) + 
+           plot_layout(
+             guides = "collect"
+           ) + 
+           plot_annotation(
+             tag_levels = "a",
+             title = TeX("$\\bf{Plant\\,Available\\,Macro-Nutrients}"),
+             subtitle = "(n=6); 0-15cm Layer ",
+             theme = theme_presentation
+           )
+)
+
+p13
+
+ggsave (
+  filename = "pan_MacroNutrients.png",
+  plot = p13,
+  path = "./output",
+  scale = 1,
+  width = 23.88,
+  height = 12.80,
+  units = c ("cm"),
+  dpi = 300
+)
 
 
 
