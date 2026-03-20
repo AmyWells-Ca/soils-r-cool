@@ -35,22 +35,23 @@ data_Texture <- filter(data, perSand != 0)
 # Reference Line from Lavkulich and Rowels, 1970
 # Lavkulich, L. M., & Rowles, C. A. (1970). Effect of different land use practices on a British Columbia Spodsol. Soil Science, 111(5), 323–329. https://doi.org/10.1097/00010694-197105000-00010
 
-p1 <- ggplot(data = data_Texture) +
-  geom_point(mapping = aes(x = perSand, y = Depth_Avg, colour = Land_Use.f, shape = Land_Use.f), size = 3) +
+p1 <- ggplot(data = data_Texture, mapping = aes(x = perSand, y = Depth_Avg, fill = Land_Use.f, shape = Land_Use.f)) +
+  geom_point(size = 3, colour = "black") +
+  stat_summary(fun = mean, geom = "point", shape = 4, size = 4, colour = "black") +
+  stat_pwc(
+    method = "t.test",
+    p.adjust.method = "bonferroni",
+    label = "p.adj.format",
+    tip.length = 0,
+    bracket.shorten = 0.1,
+    y.position = c (29,31,29)
+  ) +
   geom_abline(intercept = 147.639686684, slope = -2.55874673629, linetype = 2) +
   annotate("text", label = "Lavkulich & Rowels, 1970  >", x = 77, y = 75) +
+  fn_fillScale() +
+  fn_shapeScale() +
   fn_xLim(50,100) +
   fn_yLimR(0, 80) +
-  scale_colour_manual(
-    name = "Land Use",
-    labels = c("Cutblock", "Forest Garden", "Periphery Forest"),
-    values = c("darkorange2","darkgreen","azure4")
-  ) +
-  scale_shape_manual(
-    name = "Land Use",
-    labels = c("Cutblock", "Forest Garden", "Periphery Forest"),
-    values = c(15,16,17)
-  ) +
   labs(
     y = TeX("$\\bf{Sampling\\,Depth}\\,(cm)"),
     x = TeX("$\\bf{Percent\\,Sand}\\,(\\%)")
@@ -58,11 +59,7 @@ p1 <- ggplot(data = data_Texture) +
 
 p2 <- ggplot(data = data_Texture) +
   geom_boxplot(mapping=aes(x=Land_Use.f, y=perSand, fill = Land_Use.f), color = "black") +
-  scale_fill_manual(
-    name = "Land Use",
-    labels = c("Cutblock", "Forest Garden", "Periphery Forest"),
-    values = c("darkorange2","darkgreen","azure4")
-  ) +
+  fn_fillScale() +
   guides(fill = "none") +
   fn_yLim(60,100) +
   labs(

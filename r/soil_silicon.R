@@ -19,65 +19,118 @@ source("./r/functions.R")
 
 # Import Data set
 data <- readxl::read_xlsx("./input/readable_data.xlsx", sheet = "Machine Readable")
-reference <- readxl::read_xlsx("./input/readable_data.xlsx", sheet = "Reference")
+data <- filter(data, Outlier < 1)
 
-# Create Factors from Data
+# reference <- readxl::read_xlsx("./input/readable_data.xlsx", sheet = "Reference")
+
+# Land Use as Factor
 data$Land_Use.f <- as.factor(data$Land_Use)
 data$Land_Use.f <- factor(data$Land_Use.f, levels = c("Cutblock", "Periphery", "Forest Garden"))
 
+# Transect as Factor
+data$Transect.f <- as.factor(data$Transect)
+data$Transect.f <- factor(data$Transect.f, levels = c("B", "C"))
+
+# Plot Type as Factor
+data$Type.f <- as.factor(data$Type)
+data$Type.f <- factor(data$Type.f, levels = c("Pit","Microplot"))
+
+# Create Subsets of Data
 data_depth <- filter(data, Type == "Pit")
 data_landUse <- filter(data, Type == "Microplot")
+data_topSoil <- filter(data, Depth_Top == 0)
+data_pitTops <- filter(data_depth, Depth_Top == 0)
 
-# area = c(12, 14, 19)
-# 
-# mean(reference$Si_CaCl2)
-# 
-# ggplot(data = data, aes(y = Si_CaCl2, x = Land_Use.f)) +
-#   geom_boxplot(notch = FALSE) + 
-#   theme_paper
-#   fn_compare(reference$Si_CaCl2, compareMode = 1)
-#   
-# ggplot(data = data, aes(y = Land_Use.f, x=Si_CaCl2)) +
-#   geom_boxplot(notch = FALSE) +
-#   theme_paper
-#   fn_compare(reference$Si_CaCl2, compareMode = 0, compareAxis = "x")
-# 
+# Comparisons for Statistical Testing
+statComparisons <- list(
+  c("Cutblock", "Periphery"),
+  c("Periphery", "Forest Garden"),
+  c("Cutblock", "Forest Garden")
+)
 
 ################################################################################
-
 #
 # Dissolved Silicon
 #
+################################################################################
 
-p101 <- ggplot(data = data_landUse) +
-  geom_boxplot(mapping = aes(x = Land_Use.f, y=Si_CaCl2, fill = Land_Use.f), colour = "black") +
+# Testing Transect/Plot Type Effects
+fn_effectTest(data_topSoil, data_topSoil$Si_CaCl2)
+## Transects & Plot Type do not have a statistically significant effect (p>0.1)
+## Therefore, data$topSoil samples can be used for Si_CaCl2 to compare potential land use effects
+
+p101 <- ggplot(data = data_topSoil, mapping = aes(x = Land_Use.f, y=Si_CaCl2, fill = Land_Use.f)) +
+  geom_boxplot(colour = "black") +
+  stat_summary(fun = mean, geom = "point", shape = 4, size = 4, colour = "black") +
+  stat_pwc(
+    method = "t.test",
+    p.adjust.method = "bonferroni",
+    label = "p.adj.format",
+    tip.length = 0,
+    bracket.shorten = 0.1,
+    y.position = c (29,31,29)
+  ) +
   fn_fillScale() +
-  fn_yLim(0,30) +
+  fn_yLim(0,35) +
   labs(
-    subtitle = "Microplot Samples (n=18)",
     x = TeX("$\\bf{Land\\,Use}"),
-    y = TeX("$\\bf{Si\\,Concentration}\\,(mg\\,kg^{-1})")
-  )
+    y = TeX("$\\bf{Si\\,Concentration}\\,(mg\\,kg^{-1})"),
+    subtitle = glue("Top Soil Samples | n={nrow(data_topSoil)}"),
+    caption = glue("Soil Pit Samples: {nrow(filter(data_topSoil, Type == 'Pit'))}; Microplot Samples: {nrow(filter(data_topSoil, Type == 'Microplot'))}")
+  ) +
+  guides(fill = "none")
 
-p102 <- ggplot(data = data_depth) +
-  geom_point(mapping = aes(x = Si_CaCl2, y = Depth_Avg, colour = Land_Use.f, shape = Land_Use.f), size = 3) +
-  fn_colourScale() +
+p101
+
+model_DSi.d <- lm(Si_CaCl2 ~ Depth_Avg+Land_Use.f, data = data_depth)
+m_DSi.d.summary <- summary(model_DSi.d)
+m_DSi.d.Anova <- Anova(model_DSi.d, type = c("III"))
+
+fn_statTest(model_DSi.d)
+
+m_DSi.d.summary
+m_DSi.d.Anova
+
+m_DSi.d.tTest <- pairwise.t.test(x = data_depth$Si_CaCl2,
+                g = data_depth$Land_Use.f,
+                p.adjust.method = "bonferroni"
+)
+
+m_DSi.d <- c()
+m_DSi.d$b <- as.numeric(model_DSi.d$coefficients[1])
+m_DSi.d$m <- as.numeric(model_DSi.d$coefficients[2])
+m_DSi.d$a1 <- as.numeric(model_DSi.d$coefficients[3])
+m_DSi.d$a2 <- as.numeric(model_DSi.d$coefficients[4])
+m_DSi.d$F <- fn_quickNum(fn_simpleF(m_DSi.d.summary),4)
+m_DSi.d$Fd <- fn_quickNum(m_DSi.d.Anova$`Pr(>F)`[2], 4)
+m_DSi.d$Fl <- fn_quickNum(m_DSi.d.Anova$`Pr(>F)`[3], 4)
+
+p102 <- ggplot(data = data_depth, mapping = aes(x = Si_CaCl2, y = Depth_Jitter, fill = Land_Use.f, shape = Land_Use.f)) +
+  geom_point(size = 3, colour = "black") +
+  geom_abline(aes(intercept = (m_DSi.d$b/m_DSi.d$m), slope = -1/(m_DSi.d$m), colour = "1"), linetype = 2) +
+  geom_abline(aes(intercept = ((m_DSi.d$b+m_DSi.d$a1)/m_DSi.d$m), slope = -1/m_DSi.d$m, colour = "2"), linetype = 4) +
+  geom_abline(aes(intercept = ((m_DSi.d$b+m_DSi.d$a2)/m_DSi.d$m), slope = -1/m_DSi.d$m, colour = "3"), linetype = 5) +
+  fn_slrScale() +
+  fn_fillScale() +
   fn_shapeScale() +
   fn_yLimR(0,80) +
   fn_xLim(0,30) +
   labs(
-    subtitle = "Soil Pit Samples (n=24)",
+    subtitle = "Soil Pit Samples | n=24",
     x = TeX("$\\bf{Si\\,Concentration}\\,(mg\\,kg^{-1})"),
-    y = TeX("$\\bf{Sampling\\,Depth}\\,(cm)")
+    y = TeX("$\\bf{Sampling\\,Depth}\\,(cm)"),
+    caption = glue("Model p: {m_DSi.d$F}, Depth p: {m_DSi.d$Fd}, Land Use p: {m_DSi.d$Fl} \n \n CB-PF: {fn_quickNum(m_DSi.d.tTest$p.value[1],4)} | PF-FG: {fn_quickNum(m_DSi.d.tTest$p.value[4],4)} | CB-FG: {fn_quickNum(m_DSi.d.tTest$p.value[2],4)}")
   )
 
+p102
+  
 p103 <- ((p101 + p102) + 
          plot_layout(
            guides = "collect"
          ) + 
          plot_annotation(
            tag_levels = "a",
-           title = TeX("$\\bf{Plant\\,Available\\,Silicon}"),
+           # title = TeX("$\\bf{Plant\\,Available\\,Silicon}"),
            theme = theme_presentation
          )
 )
@@ -95,52 +148,79 @@ ggsave (
   dpi = 300
 )
 
+
+################################################################################
 #
 # Adsorbed Si
 #
+################################################################################
 
-pairwise.t.test(x = data_landUse$Si_Acetic,
-                g = data_landUse$Land_Use.f,
-                p.adjust.method = "bonferroni"
-)
+# Testing Transect/Plot Type Effects
+fn_effectTest(data_topSoil, data_topSoil$Si_Acetic)
+## Transects & Plot Type do not have a statistically significant effect (p>0.1)
+## Therefore, data$topSoil samples can be used for Si_Acetic to compare potential land use effects
 
-model_AdSi.lm = lm(Si_Acetic ~ Land_Use.f, data = data_landUse)
-summary(model_AdSi.lm)
-Anova(model_AdSi.lm, type = c("III"))
-
-p104 <- ggplot(data = data_landUse) +
-  geom_boxplot(mapping = aes(x = Land_Use.f, y=Si_Acetic, fill = Land_Use.f), colour = "black") +
+# Top Soil Effects
+p104 <- ggplot(data = data_topSoil, mapping = aes(x = Land_Use.f, y=Si_Acetic, fill = Land_Use.f)) +
+  geom_boxplot(colour = "black") +
+  stat_summary(fun = mean, geom = "point", shape = 4, size = 4, colour = "black") +
+  stat_pwc(
+    method = "t.test",
+    p.adjust.method = "bonferroni",
+    label = "p.adj.format",
+    tip.length = 0,
+    bracket.shorten = 0.1,
+    y.position = c (90,95,90)
+  ) +
   fn_fillScale() +
   fn_yLim(0,100) +
   labs(
-    subtitle = "Microplot Samples (n=18)",
     x = TeX("$\\bf{Land\\,Use}"),
-    y = TeX("$\\bf{Si\\,Concentration}\\,(mg\\,kg^{-1})")
-  )
+    y = TeX("$\\bf{Si\\,Concentration}\\,(mg\\,kg^{-1})"),
+    subtitle = glue("Top Soil Samples | n={nrow(data_topSoil)}"),
+    caption = glue("Soil Pit Samples: {nrow(filter(data_topSoil, Type == 'Pit'))}; Microplot Samples: {nrow(filter(data_topSoil, Type == 'Microplot'))}")
+  ) +
+  guides(fill = "none")
 
-### Model Record Keeping
+p104
 
-### model_AdSi.d = lm(Si_Acetic ~ Depth_Avg*Land_Use.f, data = data_depth)
-### Depth * Land_Use.f insignificant interaction (p = 0.95)
+model_AdSi.d <- lm(Si_Acetic ~ Depth_Avg+Land_Use.f, data = data_depth)
+m_AdSi.d.summary <- summary(model_AdSi.d)
+m_AdSi.d.Anova <- Anova(model_AdSi.d, type = c("III"))
 
-model_AdSi.d = lm(Si_Acetic ~ Depth_Avg + Land_Use.f, data = data_depth)
-summary(model_AdSi.d)
-Anova(model_AdSi.d, type = c("III"))
+m_AdSi.d.summary
+m_AdSi.d.Anova
+
 fn_statTest(model_AdSi.d)
 
-p105 <- ggplot(data = data_depth) +
-  geom_point(mapping = aes(x = Si_Acetic, y = Depth_Avg, colour = Land_Use.f, shape = Land_Use.f), size = 3) +
-  geom_abline(aes(intercept = (32.3314/1.69242), slope = -1/(model_AdSi.d$coefficients[2]), colour = "Cutblock"), linetype = 2) +
-  geom_abline(aes(intercept = ((32.3314+39.1495)/1.69242), slope = -1/1.6924, colour = "Periphery"), linetype = 4) +
-  geom_abline(aes(intercept = ((32.3314-16.2029)/1.69242), slope = -1/1.6924, colour = "Forest Garden"), linetype = 5) +
-  fn_colourScale() +
+m_AdSi.d.tTest <- pairwise.t.test(x = data_depth$Si_Acetic,
+                                 g = data_depth$Land_Use.f,
+                                 p.adjust.method = "bonferroni"
+)
+
+m_AdSi.d.b <- as.numeric(model_AdSi.d$coefficients[1])
+m_AdSi.d.m <- as.numeric(model_AdSi.d$coefficients[2])
+m_AdSi.d.a1 <- as.numeric(model_AdSi.d$coefficients[3])
+m_AdSi.d.a2 <- as.numeric(model_AdSi.d$coefficients[4])
+m_AdSi.d.F <- fn_quickNum(fn_simpleF(m_AdSi.d.summary),4)
+m_AdSi.d.Fd <- fn_quickNum(m_AdSi.d.Anova$`Pr(>F)`[2], 4)
+m_AdSi.d.Fl <- fn_quickNum(m_AdSi.d.Anova$`Pr(>F)`[3], 4)
+
+p105 <- ggplot(data = data_depth, mapping = aes(x = Si_Acetic, y = Depth_Jitter, fill = Land_Use.f, shape = Land_Use.f)) +
+  geom_point(size = 3, colour = "black") +
+  geom_abline(aes(intercept = (m_AdSi.d.b/m_AdSi.d.m), slope = -1/(m_AdSi.d.m), colour = "1"), linetype = 2) +
+  geom_abline(aes(intercept = ((m_AdSi.d.b+m_AdSi.d.a1)/m_AdSi.d.m), slope = -1/m_AdSi.d.m, colour = "2"), linetype = 4) +
+  geom_abline(aes(intercept = ((m_AdSi.d.b+m_AdSi.d.a2)/m_AdSi.d.m), slope = -1/m_AdSi.d.m, colour = "3"), linetype = 5) +
+  fn_slrScale() +
+  fn_fillScale() +
   fn_shapeScale() +
   fn_yLimR(0,80) +
   fn_xLim(0,250) +
   labs(
-    subtitle = "Soil Pit Samples (n=24)",
+    subtitle = "Soil Pit Samples | n=24",
     x = TeX("$\\bf{Si\\,Concentration}\\,(mg\\,kg^{-1})"),
-    y = TeX("$\\bf{Sampling\\,Depth}\\,(cm)")
+    y = TeX("$\\bf{Sampling\\,Depth}\\,(cm)"),
+    caption = glue("Model p: {m_AdSi.d.F}, Depth p: {m_AdSi.d.Fd}, Land Use p: {m_AdSi.d.Fl} \n \n CB-PF: {fn_quickNum(m_AdSi.d.tTest$p.value[1],4)} | PF-FG: {fn_quickNum(m_AdSi.d.tTest$p.value[4],4)} | CB-FG: {fn_quickNum(m_AdSi.d.tTest$p.value[2],4)}")
   )
 
 p105
@@ -151,7 +231,7 @@ p106 <- ((p104 + p105) +
            ) + 
            plot_annotation(
              tag_levels = "a",
-             title = TeX("$\\bf{Adsorbed\\,Silicon}"),
+             # title = TeX("$\\bf{Adsorbed\\,Silicon}"),
              theme = theme_presentation
            )
 )
@@ -169,55 +249,82 @@ ggsave (
   dpi = 300
 )
 
+################################################################################
 #
 # Weakly Crystaline Si (Oxalate Extractable)
 #
+################################################################################
 
-pairwise.t.test(x = data_landUse$Oxa_Si,
-                g = data_landUse$Land_Use.f,
-                p.adjust.method = "bonferroni"
-)
+# Testing Transect/Plot Type Effects
+fn_effectTest(data_topSoil, data_topSoil$Oxa_Si)
+fn_effectTest(data_topSoil, data_topSoil$Oxa_Al)
+fn_effectTest(data_topSoil, data_topSoil$Oxa_AlSi)
+## Transects & Plot Type do not have a statistically significant effect (p>0.1)
+## Therefore, data$topSoil samples can be used for Oxalate Extractable Al and Si to compare potential land use effects
 
-model_WkSi.lm = lm(Oxa_Si ~ Land_Use.f, data = data_landUse)
-summary(model_WkSi.lm)
-Anova(model_WkSi.lm, type = c("III"))
-fn_statTest(model_WkSi.lm)
-
-p107 <- ggplot(data = data_landUse) +
-  geom_boxplot(mapping = aes(x = Land_Use.f, y=Oxa_Si, fill = Land_Use.f), colour = "black") +
+# Top Soil Effects
+p107 <- ggplot(data = data_topSoil, mapping = aes(x = Land_Use.f, y=Oxa_Si, fill = Land_Use.f)) +
+  geom_boxplot(colour = "black") +
+  stat_summary(fun = mean, geom = "point", shape = 4, size = 4, colour = "black") +
+  stat_pwc(
+    method = "t.test",
+    p.adjust.method = "bonferroni",
+    label = "p.adj.format",
+    tip.length = 0,
+    bracket.shorten = 0.1,
+    y.position = c (4000,4250,4000)
+  ) +
   fn_fillScale() +
-  fn_yLim(0,4000) +
+  fn_yLim(0,4500) +
   labs(
-    subtitle = "Microplot Samples (n=18)",
     x = TeX("$\\bf{Land\\,Use}"),
-    y = TeX("$\\bf{Si\\,Concentration}\\,(mg\\,kg^{-1})")
-  )
+    y = TeX("$\\bf{Si\\,Concentration}\\,(mg\\,kg^{-1})"),
+    subtitle = glue("Top Soil Samples | n={nrow(data_topSoil)}"),
+    caption = glue("Soil Pit Samples: {nrow(filter(data_topSoil, Type == 'Pit'))}; Microplot Samples: {nrow(filter(data_topSoil, Type == 'Microplot'))}")
+  ) +
+  guides(fill = "none")
 
 p107
 
-### Model Record Keeping
+model_WkSi.d <- lm(Oxa_Si ~ Depth_Avg+Land_Use.f, data = data_depth)
+m_WkSi.d.summary <- summary(model_WkSi.d)
+m_WkSi.d.Anova <- Anova(model_WkSi.d, type = c("III"))
 
-### model_WkSi.d = lm(Oxa_Si ~ Depth_Avg*Land_Use.f, data = data_depth)
-### Depth * Land_Use.f insignificant interaction (p = 0.77)
+m_WkSi.d.summary
+m_WkSi.d.Anova
 
-model_WkSi.d = lm(log(Oxa_Si) ~ Depth_Avg+Land_Use.f, data = data_depth)
-summary(model_WkSi.d)
-Anova(model_WkSi.d, type = c("III"))
-fn_statTest(model_WkSi.d, saveTest = TRUE)
+fn_statTest(model_WkSi.d)
 
-p108 <- ggplot(data = data_depth) +
-  geom_point(mapping = aes(x = Oxa_Si, y = Depth_Avg, colour = Land_Use.f, shape = Land_Use.f), size = 3) +
-  # geom_abline(aes(intercept = (32.3314/1.69242), slope = -1/(model_AdSi.d$coefficients[2]), colour = "Cutblock"), linetype = 2) +
-  # geom_abline(aes(intercept = ((32.3314+39.1495)/1.69242), slope = -1/1.6924, colour = "Periphery"), linetype = 4) +
-  # geom_abline(aes(intercept = ((32.3314-16.2029)/1.69242), slope = -1/1.6924, colour = "Forest Garden"), linetype = 5) +
-  fn_colourScale() +
+m_WkSi.d.tTest <- pairwise.t.test(x = data_depth$Oxa_Si,
+                                  g = data_depth$Land_Use.f,
+                                  p.adjust.method = "bonferroni"
+)
+
+m_WkSi.d.tTest
+
+m_WkSi.d.b <- as.numeric(model_WkSi.d$coefficients[1])
+m_WkSi.d.m <- as.numeric(model_WkSi.d$coefficients[2])
+m_WkSi.d.a1 <- as.numeric(model_WkSi.d$coefficients[3])
+m_WkSi.d.a2 <- as.numeric(model_WkSi.d$coefficients[4])
+m_WkSi.d.F <- fn_quickNum(fn_simpleF(m_WkSi.d.summary),4)
+m_WkSi.d.Fd <- fn_quickNum(m_WkSi.d.Anova$`Pr(>F)`[2], 4)
+m_WkSi.d.Fl <- fn_quickNum(m_WkSi.d.Anova$`Pr(>F)`[3], 4)
+
+p108 <- ggplot(data = data_depth, mapping = aes(x = Oxa_Si, y = Depth_Jitter, fill = Land_Use.f, shape = Land_Use.f)) +
+  geom_point(size = 3, colour = "black") +
+  geom_abline(aes(intercept = (m_WkSi.d.b/m_WkSi.d.m), slope = -1/(m_WkSi.d.m), colour = "1"), linetype = 2) +
+  geom_abline(aes(intercept = ((m_WkSi.d.b+m_WkSi.d.a1)/m_WkSi.d.m), slope = -1/m_WkSi.d.m, colour = "2"), linetype = 4) +
+  geom_abline(aes(intercept = ((m_WkSi.d.b+m_WkSi.d.a2)/m_WkSi.d.m), slope = -1/m_WkSi.d.m, colour = "3"), linetype = 5) +
+  fn_slrScale() +
+  fn_fillScale() +
   fn_shapeScale() +
   fn_yLimR(0,80) +
   fn_xLim(0,15000) +
   labs(
-    subtitle = "Soil Pit Samples (n=24)",
+    subtitle = glue("Soil Pit Samples | n={nrow(data_depth)}"),
     x = TeX("$\\bf{Si\\,Concentration}\\,(mg\\,kg^{-1})"),
-    y = TeX("$\\bf{Sampling\\,Depth}\\,(cm)")
+    y = TeX("$\\bf{Sampling\\,Depth}\\,(cm)"),
+    caption = glue("Model p: {m_WkSi.d.m}, Depth p: {m_WkSi.d.Fd}, Land Use p: {m_WkSi.d.Fl} \n \n CB-PF: {fn_quickNum(m_WkSi.d.tTest$p.value[1],4)} | PF-FG: {fn_quickNum(m_WkSi.d.tTest$p.value[4],4)} | CB-FG: {fn_quickNum(m_WkSi.d.tTest$p.value[2],4)}")
   )
 
 p108
@@ -228,7 +335,7 @@ p109 <- ((p107 + p108) +
            ) + 
            plot_annotation(
              tag_levels = "a",
-             title = TeX("$\\bf{Weakly\\,Crystaline\\,Silicon}"),
+             # title = TeX("$\\bf{Weakly\\,Crystaline\\,Silicon}"),
              subtitle = "Allophane and Immogolite",
              theme = theme_presentation
            )
@@ -247,45 +354,93 @@ ggsave (
   dpi = 300
 )
 
-p110 <- ggplot(data = data_depth) +
-  geom_point(mapping = aes(x = Oxa_Al, y = Depth_Avg, colour = Land_Use.f, shape = Land_Use.f), size = 3) +
-  # geom_abline(aes(intercept = (32.3314/1.69242), slope = -1/(model_AdSi.d$coefficients[2]), colour = "Cutblock"), linetype = 2) +
-  # geom_abline(aes(intercept = ((32.3314+39.1495)/1.69242), slope = -1/1.6924, colour = "Periphery"), linetype = 4) +
-  # geom_abline(aes(intercept = ((32.3314-16.2029)/1.69242), slope = -1/1.6924, colour = "Forest Garden"), linetype = 5) +
-  fn_colourScale() +
+#
+# Amorphous Aluminum
+#
+
+model_WkAl.d <- lm(Oxa_Al ~ Depth_Avg+Land_Use.f, data = data_depth)
+m_WkAl.d <- c()
+m_WkAl.d.summary <- summary(model_WkAl.d)
+m_WkAl.d.Anova <- Anova(model_WkAl.d, type = c("III"))
+
+m_WkAl.d.summary
+m_WkAl.d.Anova
+
+m_WkAl.d$tTest <- pairwise.t.test(x = data_depth$Oxa_Si,
+                                  g = data_depth$Land_Use.f,
+                                  p.adjust.method = "bonferroni"
+)
+
+m_WkAl.d$tTest
+
+m_WkAl.d$b <- as.numeric(model_WkAl.d$coefficients[1])
+m_WkAl.d$m <- as.numeric(model_WkAl.d$coefficients[2])
+m_WkAl.d$a1 <- as.numeric(model_WkAl.d$coefficients[3])
+m_WkAl.d$a2 <- as.numeric(model_WkAl.d$coefficients[4])
+m_WkAl.d$F <- fn_quickNum(fn_simpleF(m_WkAl.d.summary),4)
+m_WkAl.d$Fd <- fn_quickNum(m_WkAl.d.Anova$`Pr(>F)`[2], 4)
+m_WkAl.d$Fl <- fn_quickNum(m_WkAl.d.Anova$`Pr(>F)`[3], 4)
+
+p110 <- ggplot(data = data_depth, mapping = aes(x = Oxa_Al, y = Depth_Jitter, fill = Land_Use.f, shape = Land_Use.f)) +
+  geom_point(size = 3, colour = "black") +
+  geom_abline(aes(intercept = (m_WkAl.d$b/m_WkAl.d$m), slope = -1/(m_WkAl.d$m), colour = "1"), linetype = 2) +
+  geom_abline(aes(intercept = ((m_WkAl.d$b+m_WkAl.d$a1)/m_WkAl.d$m), slope = -1/m_WkAl.d$m, colour = "2"), linetype = 4) +
+  geom_abline(aes(intercept = ((m_WkAl.d$b+m_WkAl.d$a2)/m_WkAl.d$m), slope = -1/m_WkAl.d$m, colour = "3"), linetype = 5) +
+  fn_slrScale() +
+  fn_fillScale() +
   fn_shapeScale() +
   fn_yLimR(0,80) +
   fn_xLim(0,40000) +
   labs(
-    subtitle = "Soil Pit Samples (n=24)",
+    subtitle = "Soil Pit Samples | n=24",
     x = TeX("$\\bf{Al\\,Concentration}\\,(mg\\,kg^{-1})"),
-    y = TeX("$\\bf{Sampling\\,Depth}\\,(cm)")
+    y = TeX("$\\bf{Sampling\\,Depth}\\,(cm)"),
+    caption = glue("Model p: {m_WkAl.d$F}, Depth p: {m_WkAl.d$Fd}, Land Use p: {m_WkAl.d$Fl} \n \n CB-PF: {fn_quickNum(m_WkAl.d$tTest$p.value[1],4)} | PF-FG: {fn_quickNum(m_WkAl.d$tTest$p.value[4],4)} | CB-FG: {fn_quickNum(m_WkAl.d$tTest$p.value[2],4)}")
   )
 
 p110
 
-p111 <- ggplot(data = data_landUse) +
-  geom_jitter(mapping = aes(x = Land_Use.f, y=Oxa_AlSi, colour = Land_Use.f, shape = Land_Use.f), size = 3) +
-  fn_colourScale() +
+p111 <- ggplot(data = data_topSoil, mapping = aes(x = Land_Use.f, y=Oxa_AlSi, fill = Land_Use.f, shape = Land_Use.f)) +
+  geom_jitter(colour = "black", size = 3) +
+  stat_summary(fun = mean, geom = "point", shape = 4, size = 4, colour = "black") +
+  stat_pwc(
+    method = "t.test",
+    p.adjust.method = "bonferroni",
+    label = "p.adj.format",
+    tip.length = 0,
+    bracket.shorten = 0.1,
+    y.position = c (35,37.5,35)
+  ) +
+  fn_fillScale() +
   fn_shapeScale() +
   fn_yLim(0,50) +
   labs(
-    subtitle = "Microplot Samples (n=12); 6 <DL for Si",
     x = TeX("$\\bf{Land\\,Use}"),
-    y = TeX("$\\bf{Si}$:$\\bf{Al\\,Ratio}")
+    y = TeX("$\\bf{Al}$:$\\bf{Si\\,Ratio}"),
+    subtitle = glue("Top Soil Samples | n={nrow(data_topSoil)}"),
+    caption = glue("Soil Pit Samples: {nrow(filter(data_topSoil, Type == 'Pit'))}; Microplot Samples: {nrow(filter(data_topSoil, Type == 'Microplot'))}")
   )
 
 p111
 
-p112 <- ggplot(data = data_depth) +
-  geom_jitter(mapping = aes(x = Land_Use.f, y=Oxa_AlSi, colour = Land_Use.f, shape = Land_Use.f), size = 3) +
-  fn_colourScale() +
+p112 <- ggplot(data = data_depth, mapping = aes(x = Land_Use.f, y=Oxa_AlSi, fill = Land_Use.f, shape = Land_Use.f)) +
+  geom_jitter(colour = "black", size = 3) +
+  stat_summary(fun = mean, geom = "point", shape = 4, size = 4, colour = "black") +
+  stat_pwc(
+    method = "t.test",
+    p.adjust.method = "bonferroni",
+    label = "p.adj.format",
+    tip.length = 0,
+    bracket.shorten = 0.1,
+    y.position = c (22.5,25,22.5)
+  ) +
+  fn_fillScale() +
   fn_shapeScale() +
-  fn_yLim(0,20) +
+  fn_yLim(0,30) +
   labs(
-    subtitle = "Soil Pit Samples (n=24)",
     x = TeX("$\\bf{Land\\,Use}"),
-    y = TeX("$\\bf{Si}$:$\\bf{Al\\,Ratio}")
+    y = TeX("$\\bf{Al}$:$\\bf{Si\\,Ratio}"),
+    subtitle = glue("Soil Pit Samples | n={nrow(data_depth)}")
   )
 
 p112
@@ -296,7 +451,7 @@ p113 <- ((p110 + (p112 / p111)) +
            ) + 
            plot_annotation(
              tag_levels = "a",
-             title = TeX("$\\bf{Oxalate\\,Extractable\\,Aluminum}"),
+             # title = TeX("$\\bf{Oxalate\\,Extractable\\,Aluminum}"),
              subtitle = "Allophane and Immogolite",
              theme = theme_presentation
            )
@@ -315,41 +470,60 @@ ggsave (
   dpi = 300
 )
 
+################################################################################
 #
 # Amorphous Si
 #
+################################################################################
 
-pairwise.t.test(x = data_landUse$Si_kin,
-                g = data_landUse$Land_Use.f,
-                p.adjust.method = "bonferroni"
-)
+# Testing Transect/Plot Type Effects
+fn_effectTest(data_topSoil, data_topSoil$Si_kin)
+fn_effectTest(data_topSoil, data_topSoil$Al_Kin)
+fn_effectTest(data_topSoil, data_topSoil$SiAl_kin)
+## Transects & Plot Type do not have a statistically significant effect (p>0.1)
+## Therefore, data$topSoil samples can be used for Oxalate Extractable Al and Si to compare potential land use effects
 
-pairwise.t.test(x = data_landUse$SiAl_kin,
-                g = data_landUse$Land_Use.f,
-                p.adjust.method = "bonferroni"
-)
 
-p114 <- ggplot(data = data_landUse) +
-  geom_boxplot(mapping = aes(x = Land_Use.f, y=Si_kin, fill = Land_Use.f), colour = "black") +
+p114 <- ggplot(data = data_landUse, mapping = aes(x = Land_Use.f, y=Oxa_Si, fill = Land_Use.f)) +
+  geom_boxplot(colour = "black") +
+  stat_summary(fun = mean, geom = "point", shape = 4, size = 4, colour = "black") +
+  stat_pwc(
+    method = "t.test",
+    p.adjust.method = "bonferroni",
+    label = "p.adj.format",
+    tip.length = 0,
+    bracket.shorten = 0.1,
+    y.position = c (4250,4500,4250)
+  ) +
   fn_fillScale() +
-  fn_yLim(0,8000) +
+  fn_yLim(0,5000) +
   labs(
-    subtitle = "Microplot Samples (n=18)",
     x = TeX("$\\bf{Land\\,Use}"),
-    y = TeX("$\\bf{Si\\,Concentration}\\,(mg\\,kg^{-1})")
-  )
+    y = TeX("$\\bf{Si\\,Concentration}\\,(mg\\,kg^{-1})"),
+    subtitle = glue("Microplot Samples | n={nrow(data_landUse)}")
+  ) +
+  guides(fill = "none")
 
 p114
 
-p115 <- ggplot(data = data_landUse) +
-  geom_jitter(mapping = aes(x = Land_Use.f, y=SiAl_kin, colour = Land_Use.f, shape = Land_Use.f), size = 3) +
-  fn_colourScale() +
+p115 <- ggplot(data = data_landUse, mapping = aes(x = Land_Use.f, y=SiAl_kin, fill = Land_Use.f, shape = Land_Use.f)) +
+  geom_jitter(colour = "black", size = 3) +
+  stat_summary(fun = mean, geom = "point", shape = 4, size = 4, colour = "black") +
+  stat_pwc(
+    method = "t.test",
+    p.adjust.method = "bonferroni",
+    label = "p.adj.format",
+    tip.length = 0,
+    bracket.shorten = 0.1,
+    y.position = c (3.25,3.5,3.25)
+  ) +
+  fn_fillScale() +
   fn_shapeScale() +
   fn_yLim(0,4) +
   labs(
-    subtitle = "Microplot Samples (n=18)",
     x = TeX("$\\bf{Land\\,Use}"),
-    y = TeX("$\\bf{Si}$:$\\bf{Al\\,Ratio}")
+    y = TeX("$\\bf{Si}$:$\\bf{Al\\,Ratio}"),
+    subtitle = glue("Microplot Samples | n={nrow(data_landUse)}")
   )
 
 p115

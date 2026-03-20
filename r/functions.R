@@ -68,6 +68,7 @@ theme_main = theme_gray() + theme(
 theme_presentation = theme(
   plot.title = element_text(size = 12, family = "Trebuchet MS", face = "bold", color = "black"),
   plot.subtitle = element_text(size = 11, family = "Trebuchet MS", color = "black"),
+  plot.caption = element_text(size = 9, family = "Trebuchet MS", color = "black"),
   legend.title = element_text(size = 10, family = "Trebuchet MS"),
   axis.title.x = element_text(size = 12, family = "Trebuchet MS"),
   axis.title.y = element_text(size = 12, family = "Trebuchet MS"),
@@ -79,6 +80,7 @@ theme_presentation = theme(
 theme_paper = theme(
   plot.title = element_text(size = 12, family = "Times New Roman", face = "bold", color = "black"),
   plot.subtitle = element_text(size = 11, family = "Times New Roman", color = "black"),
+  plot.caption = element_text(size = 9, family = "Times New Roman", color = "black"),
   legend.title = element_text(size = 10, family = "Times New Roman"),
   axis.title.x = element_text(size = 12, family = "Times New Roman"),
   axis.title.y = element_text(size = 12, family = "Times New Roman"),
@@ -91,6 +93,12 @@ legend_tr = theme(
   legend.justification = c("right", "top"),
   legend.box.just = "right",
   legend.margin = margin(3, 3, 3, 3)
+)
+
+theme_noX = theme(
+  axis.text.x = element_blank(),
+  axis.title.x = element_blank(),
+  axis.ticks.x = element_blank()
 )
 
 ## Updates Default Theme
@@ -211,11 +219,11 @@ fn_statTest = function(testModel, testTheme = theme_presentation, saveTest = FAL
 #                                                                              #
 ################################################################################
 
-col_CB = "darkorange"
+col_CB = "gold"
 
-col_PF = "chartreuse"
+col_PF = "darkorange"
 
-col_FG = "darkgreen"
+col_FG = "purple"
 
 ################################################################################
 #                                                                              #
@@ -243,8 +251,8 @@ fn_shapeScale = function(){
   return(
       scale_shape_manual(
       name = "Land Use",
-      labels = c("Cutblock", "Periphery Forest", "Forest Garden"),
-      values = c(15,16,17)
+      labels = c("Cutblock", "Periphery", "Forest Garden"),
+      values = c(22,21,24)
     )
   )
 }
@@ -253,7 +261,17 @@ fn_colourScale = function(){
   return(
     scale_colour_manual(
       name = "Land Use",
-      labels = c("Cutblock", "Periphery Forest", "Forest Garden"),
+      labels = c("Cutblock", "Periphery", "Forest Garden"),
+      values = c(col_CB,col_PF,col_FG)
+    )
+  )
+}
+
+fn_slrScale = function(){
+  return(
+    scale_colour_manual(
+      name = "Land Use",
+      labels = c("Cutblock", "Periphery", "Forest Garden"),
       values = c(col_CB,col_PF,col_FG)
     )
   )
@@ -263,7 +281,7 @@ fn_fillScale = function(){
   return(
     scale_fill_manual(
       name = "Land Use",
-      labels = c("Cutblock", "Periphery Forest", "Forest Garden"),
+      labels = c("Cutblock", "Periphery", "Forest Garden"),
       values = c(col_CB,col_PF,col_FG)
     )
   )
@@ -322,3 +340,31 @@ fn_compare = function(variable, variableName = variable, compareAxis = "y", comp
 }
 
 ################################################################################
+#
+#
+#
+################################################################################
+
+fn_simpleF = function(modelSummary){
+  return(1 - pf(modelSummary$fstatistic[1],modelSummary$fstatistic[2],modelSummary$fstatistic[3]))
+}
+
+fn_effectTest = function(dataSource, variable){
+  
+  # Transect Effect?
+  model_temp <- lm(variable ~ Transect.f, data = dataSource)
+  summary_temp <- summary(model_temp)
+  print(glue("Likelyhood that Transect (A/B/C) does not affect {deparse(substitute(variable))}: {as.numeric(fn_simpleF(summary_temp))}"))
+  
+  # Plot Type Effect?
+  model_temp <- lm(variable ~ Type.f, data = dataSource)
+  summary_temp <- summary(model_temp)
+  print(glue("Likelyhood that Plot Type (Pit/Microplot) does not affect {deparse(substitute(variable))}: {as.numeric(fn_simpleF(summary_temp))}"))
+  
+}
+
+fn_quickNum = function(inputVariable, numDigits = 2){
+  return(
+    as.numeric(round(inputVariable, digits = numDigits))
+  )
+}
