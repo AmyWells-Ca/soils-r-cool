@@ -37,17 +37,8 @@ data_Texture <- filter(data, perSand != 0)
 
 p1 <- ggplot(data = data_Texture, mapping = aes(x = perSand, y = Depth_Avg, fill = Land_Use.f, shape = Land_Use.f)) +
   geom_point(size = 3, colour = "black") +
-  stat_summary(fun = mean, geom = "point", shape = 4, size = 4, colour = "black") +
-  stat_pwc(
-    method = "t.test",
-    p.adjust.method = "bonferroni",
-    label = "p.adj.format",
-    tip.length = 0,
-    bracket.shorten = 0.1,
-    y.position = c (29,31,29)
-  ) +
   geom_abline(intercept = 147.639686684, slope = -2.55874673629, linetype = 2) +
-  annotate("text", label = "Lavkulich & Rowels, 1970  >", x = 77, y = 75) +
+  annotate("text", label = "Lavkulich & Rowels, 1970  >", x = 75, y = 75) +
   fn_fillScale() +
   fn_shapeScale() +
   fn_xLim(50,100) +
@@ -57,8 +48,17 @@ p1 <- ggplot(data = data_Texture, mapping = aes(x = perSand, y = Depth_Avg, fill
     x = TeX("$\\bf{Percent\\,Sand}\\,(\\%)")
   ) + theme_presentation
 
-p2 <- ggplot(data = data_Texture) +
-  geom_boxplot(mapping=aes(x=Land_Use.f, y=perSand, fill = Land_Use.f), color = "black") +
+p2 <- ggplot(data = data_Texture, mapping=aes(x=Land_Use.f, y=perSand, fill = Land_Use.f)) +
+  geom_boxplot(color = "black") +
+  stat_summary(fun = mean, geom = "point", shape = 4, size = 4, colour = "black") +
+  stat_pwc(
+    method = "t.test",
+    p.adjust.method = "bonferroni",
+    label = "p.adj.format",
+    tip.length = 0,
+    bracket.shorten = 0.1,
+    y.position = c (91,94,91)
+  ) +
   fn_fillScale() +
   guides(fill = "none") +
   fn_yLim(60,100) +
@@ -67,9 +67,19 @@ p2 <- ggplot(data = data_Texture) +
     y = TeX("$\\bf{Percent\\,Sand}\\,(\\%)")
   ) + theme_presentation
 
-p3 <- (p1 + p2 + plot_layout(widths = c(2,1)))
+p3 <- (p1 + p2 + plot_layout(
+  widths = c(2,1),
+  guides = "collect"
+  ) +
+  plot_annotation(
+    tag_levels = "a",
+    # title = TeX("$\\bf{Pools\\,of\\,Soil\\,pH\\,by\\,Depth}"),
+    subtitle = glue("Transect B Soil Pits | n = 12"),
+    theme = theme_presentation
+  )
+)
 
-print(p3)
+p3
 
 ggsave (
   filename = "figure_n_DescribedTexture.png",

@@ -47,6 +47,8 @@ comparisons <- list(
   c("Periphery", "Forest Garden")
 )
 
+
+
 ################################################################################
 #
 # pH
@@ -221,24 +223,75 @@ ggsave (
 )
 
 #
-# pH Analytical Models
+# Base Saturation
 #
 
-model_pH_H2O.d <- lm(pH_H2O ~ Depth_Avg+Land_Use.f, data = data_depth)
-model_pH_CaCl2.d <- lm(pH_CaCl2 ~ Depth_Avg+Land_Use.f, data = data_depth)
-model_pH_Delta.d <- lm(pH_Delta ~ Depth_Avg+Land_Use.f, data = data_depth)
+fn_effectTest(data_topSoil, data_topSoil$BaseSaturation)
+fn_effectTest(data_topSoil, data_topSoil$Exc_Ca)
+fn_effectTest(data_topSoil, data_topSoil$Exc_K)
+fn_effectTest(data_topSoil, data_topSoil$Exc_Mg)
+fn_effectTest(data_topSoil, data_topSoil$Exc_Mn)
+fn_effectTest(data_topSoil, data_topSoil$Exc_Na)
+fn_effectTest(data_topSoil, data_topSoil$Exc_Fe)
+fn_effectTest(data_topSoil, data_topSoil$Exc_Al)
+fn_effectTest(data_topSoil, data_topSoil$Exc_H)
 
-summary(model_pH_H2O.d)
-Anova(model_pH_H2O.d, type = c("III"))
-fn_statTest(model_pH_H2O.d, saveTest = FALSE)
+p19 <- ggplot(data = data_landUse, mapping = aes(x = Land_Use.f, y=BaseSaturation, fill = Land_Use.f)) +
+  geom_boxplot(colour = "black") +
+  stat_summary(fun = mean, geom = "point", shape = 4, size = 4, colour = "black") +
+  stat_pwc(
+    method = "t.test",
+    p.adjust.method = "bonferroni",
+    label = "p.adj.format",
+    tip.length = 0,
+    bracket.shorten = 0.1,
+    y.position = c (0.4,0.6,0.4)
+  ) +
+  fn_fillScale() +
+  fn_yLim(0,1) +
+  labs(
+    subtitle = glue("Microplot Samples | n={nrow(data_landUse)}"),
+    x = TeX("$\\bf{Land\\,Use}"),
+    y = TeX("$\\bf{\\Base\\,Saturation}\\,\\,( \\frac{\\sum{Ca^{2+}+K^{+}+Mg^{2+}+Mn^{2+}+Na^{+}}}{CEC})")
+  ) +
+  guides(fill = "none")
 
-summary(model_pH_CaCl2.d)
-Anova(model_pH_CaCl2.d, type = c("III"))
-fn_statTest(model_pH_CaCl2.d, saveTest = FALSE)
+p20 <- ggplot(data = data_depth, mapping = aes(x = BaseSaturation, y = Depth_Avg, fill = Land_Use.f, shape = Land_Use.f)) +
+  geom_point(size = 3, colour = "black") + 
+  fn_fillScale() +
+  fn_shapeScale() +
+  fn_xLim(0,1) +
+  fn_yLimR(0,80) +
+  labs(
+    subtitle = glue("Soil Pit Samples | n={nrow(data_depth)}"),
+    x = TeX("$\\bf{\\Base\\,Saturation}\\,\\,( \\frac{\\sum{Ca^{2+}+K^{+}+Mg^{2+}+Mn^{2+}+Na^{+}}}{CEC})"),
+    y = TeX("$\\bf{Sampling\\,Depth}\\,(cm)")
+  )
 
-summary(model_pH_Delta.d)
-Anova(model_pH_Delta.d, type = c("III"))
-fn_statTest(model_pH_Delta.d, saveTest = FALSE)
+p21 <- ((p19 + p20) + 
+         plot_layout(
+           guides = "collect"
+         ) + 
+         plot_annotation(
+           tag_levels = "a",
+           # title = TeX("$\\bf{Pools\\,of\\,Soil\\,pH\\,by\\,Depth}"),
+           # subtitle = glue("Soil Pit Samples | n={nrow(data_depth)}"),
+           theme = theme_presentation
+         )
+)
+
+p21
+
+ggsave (
+  filename = "BaseSaturation.png",
+  plot = p21,
+  path = "./output",
+  scale = 1,
+  width = 23.88,
+  height = 12.8,
+  units = c ("cm"),
+  dpi = 300
+)
 
 ################################################################################
 #

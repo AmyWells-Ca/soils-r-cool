@@ -107,9 +107,9 @@ m_DSi.d$Fl <- fn_quickNum(m_DSi.d.Anova$`Pr(>F)`[3], 4)
 
 p102 <- ggplot(data = data_depth, mapping = aes(x = Si_CaCl2, y = Depth_Jitter, fill = Land_Use.f, shape = Land_Use.f)) +
   geom_point(size = 3, colour = "black") +
-  geom_abline(aes(intercept = (m_DSi.d$b/m_DSi.d$m), slope = -1/(m_DSi.d$m), colour = "1"), linetype = 2) +
-  geom_abline(aes(intercept = ((m_DSi.d$b+m_DSi.d$a1)/m_DSi.d$m), slope = -1/m_DSi.d$m, colour = "2"), linetype = 4) +
-  geom_abline(aes(intercept = ((m_DSi.d$b+m_DSi.d$a2)/m_DSi.d$m), slope = -1/m_DSi.d$m, colour = "3"), linetype = 5) +
+  geom_abline(aes(intercept = (m_DSi.d$b/m_DSi.d$m), slope = -1/(m_DSi.d$m), colour = "0"), linetype = 2) +
+  geom_abline(aes(intercept = ((m_DSi.d$b+m_DSi.d$a1)/m_DSi.d$m), slope = -1/m_DSi.d$m, colour = "1"), linetype = 4) +
+  geom_abline(aes(intercept = ((m_DSi.d$b+m_DSi.d$a2)/m_DSi.d$m), slope = -1/m_DSi.d$m, colour = "2"), linetype = 5) +
   fn_slrScale() +
   fn_fillScale() +
   fn_shapeScale() +
@@ -208,9 +208,9 @@ m_AdSi.d.Fl <- fn_quickNum(m_AdSi.d.Anova$`Pr(>F)`[3], 4)
 
 p105 <- ggplot(data = data_depth, mapping = aes(x = Si_Acetic, y = Depth_Jitter, fill = Land_Use.f, shape = Land_Use.f)) +
   geom_point(size = 3, colour = "black") +
-  geom_abline(aes(intercept = (m_AdSi.d.b/m_AdSi.d.m), slope = -1/(m_AdSi.d.m), colour = "1"), linetype = 2) +
-  geom_abline(aes(intercept = ((m_AdSi.d.b+m_AdSi.d.a1)/m_AdSi.d.m), slope = -1/m_AdSi.d.m, colour = "2"), linetype = 4) +
-  geom_abline(aes(intercept = ((m_AdSi.d.b+m_AdSi.d.a2)/m_AdSi.d.m), slope = -1/m_AdSi.d.m, colour = "3"), linetype = 5) +
+  geom_abline(aes(intercept = (m_AdSi.d.b/m_AdSi.d.m), slope = -1/(m_AdSi.d.m), colour = "0"), linetype = 2) +
+  geom_abline(aes(intercept = ((m_AdSi.d.b+m_AdSi.d.a1)/m_AdSi.d.m), slope = -1/m_AdSi.d.m, colour = "1"), linetype = 4) +
+  geom_abline(aes(intercept = ((m_AdSi.d.b+m_AdSi.d.a2)/m_AdSi.d.m), slope = -1/m_AdSi.d.m, colour = "2"), linetype = 5) +
   fn_slrScale() +
   fn_fillScale() +
   fn_shapeScale() +
@@ -484,7 +484,7 @@ fn_effectTest(data_topSoil, data_topSoil$SiAl_kin)
 ## Therefore, data$topSoil samples can be used for Oxalate Extractable Al and Si to compare potential land use effects
 
 
-p114 <- ggplot(data = data_landUse, mapping = aes(x = Land_Use.f, y=Oxa_Si, fill = Land_Use.f)) +
+p114 <- ggplot(data = data_landUse, mapping = aes(x = Land_Use.f, y=Si_kin, fill = Land_Use.f)) +
   geom_boxplot(colour = "black") +
   stat_summary(fun = mean, geom = "point", shape = 4, size = 4, colour = "black") +
   stat_pwc(

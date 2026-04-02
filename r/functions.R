@@ -56,6 +56,9 @@ match_fonts("Arial")
 match_fonts("Trebuchet MS")
 
 ## Base Theme (Replicates style of graphs Amy makes in excel)
+##
+##   This is based on tweaks that I consistently made to graphs in excel, that you may
+##   also want to include on your graphs!
 
 theme_main = theme_gray() + theme(
   panel.background = element_rect(fill = "white"),
@@ -64,28 +67,42 @@ theme_main = theme_gray() + theme(
   plot.background = element_rect(fill = "white"),
 )
 
-## Changes font to Trebuchet MS (for Presentations)
+## Presentation Theme!
+##
+##   My presentations tend to use Trebuchet MS for the slide text, and I wanted
+##   to have my figures have a matching font that is large enough to be read 
+##
+
+font_presentation = "Trebuchet MS" # <-- Change the font here
+
 theme_presentation = theme(
-  plot.title = element_text(size = 12, family = "Trebuchet MS", face = "bold", color = "black"),
-  plot.subtitle = element_text(size = 11, family = "Trebuchet MS", color = "black"),
-  plot.caption = element_text(size = 9, family = "Trebuchet MS", color = "black"),
-  legend.title = element_text(size = 10, family = "Trebuchet MS"),
-  axis.title.x = element_text(size = 12, family = "Trebuchet MS"),
-  axis.title.y = element_text(size = 12, family = "Trebuchet MS"),
-  axis.text.x = element_text(size = 10, family = "Trebuchet MS"),
-  axis.text.y = element_text(size = 10, family = "Trebuchet MS")
+  plot.title = element_text(size = 20, family = font_presentation, face = "bold", color = "black"),
+  plot.subtitle = element_text(size = 16, family = font_presentation, color = "black"),
+  plot.caption = element_text(size = 14, family = font_presentation, color = "black"),
+  legend.title = element_text(size = 14, family = font_presentation),
+  axis.title.x = element_text(size = 16, family = font_presentation),
+  axis.title.y = element_text(size = 16, family = font_presentation),
+  axis.text.x = element_text(size = 14, family = font_presentation),
+  axis.text.y = element_text(size = 14, family = font_presentation)
 )
 
-## Changes font to Times New Roman (for Papers)
+## Paper Theme!
+##
+##   Papers tend to use Times New Roman for the content text, and I wanted
+##   to have my figures have a matching font! 
+##
+
+font_paper = "Times New Roman" # <-- Change the font here
+
 theme_paper = theme(
-  plot.title = element_text(size = 12, family = "Times New Roman", face = "bold", color = "black"),
-  plot.subtitle = element_text(size = 11, family = "Times New Roman", color = "black"),
-  plot.caption = element_text(size = 9, family = "Times New Roman", color = "black"),
-  legend.title = element_text(size = 10, family = "Times New Roman"),
-  axis.title.x = element_text(size = 12, family = "Times New Roman"),
-  axis.title.y = element_text(size = 12, family = "Times New Roman"),
-  axis.text.x = element_text(size = 10, family = "Times New Roman"),
-  axis.text.y = element_text(size = 10, family = "Times New Roman")
+  plot.title = element_text(size = 12, family = font_paper, face = "bold", color = "black"),
+  plot.subtitle = element_text(size = 11, family = font_paper, color = "black"),
+  plot.caption = element_text(size = 9, family = font_paper, color = "black"),
+  legend.title = element_text(size = 10, family = font_paper),
+  axis.title.x = element_text(size = 12, family = font_paper),
+  axis.title.y = element_text(size = 12, family = font_paper),
+  axis.text.x = element_text(size = 10, family = font_paper),
+  axis.text.y = element_text(size = 10, family = font_paper)
 )
 
 legend_tr = theme(
@@ -95,6 +112,7 @@ legend_tr = theme(
   legend.margin = margin(3, 3, 3, 3)
 )
 
+# Can call this theme to remove labels on the X-Axis (if needed)
 theme_noX = theme(
   axis.text.x = element_blank(),
   axis.title.x = element_blank(),
@@ -218,6 +236,15 @@ fn_statTest = function(testModel, testTheme = theme_presentation, saveTest = FAL
 #                          CONSISTENT COLOURS                                  #
 #                                                                              #
 ################################################################################
+
+# Named R Colours can be found here:
+#    https://r-graph-gallery.com/42-colors-names.html
+#
+# Colour Contrast can be checked using online tools like:
+#    https://www.color-blindness.com/coblis-color-blindness-simulator/
+# 
+# R Point Shapes can be found here:
+#    https://www.sthda.com/english/wiki/ggplot2-point-shapes
 
 col_CB = "gold"
 
