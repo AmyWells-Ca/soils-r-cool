@@ -16,12 +16,8 @@
 
 # Load Packages & Build Utilities
 source("./r/functions.R")
+source("./r/KFN_ini")
 
-# Import Data set
-data <- readxl::read_xlsx("./input/readable_data.xlsx", sheet = "Machine Readable")
-data <- filter(data, Outlier < 1)
-
-# reference <- readxl::read_xlsx("./input/readable_data.xlsx", sheet = "Reference")
 
 # Land Use as Factor
 data$Land_Use.f <- as.factor(data$Land_Use)
@@ -53,6 +49,11 @@ statComparisons <- list(
 # Dissolved Silicon
 #
 ################################################################################
+
+
+p_t_DSi_001 <- qp_landUse(data_t, data_t$Si_CaCl2)
+
+p_t_DSi_001
 
 # Testing Transect/Plot Type Effects
 fn_effectTest(data_topSoil, data_topSoil$Si_CaCl2)

@@ -15,6 +15,7 @@
 
 # Load Packages & Build Utilities
 source("./r/functions.R")
+source("./r/KFN_ini")
 
 # Import Data set
 data <- readxl::read_xlsx("./input/readable_data.xlsx", sheet = "Machine Readable")
@@ -54,6 +55,31 @@ comparisons <- list(
 # pH
 #
 ################################################################################
+
+fn_effectTest(data_t, data_t$pH_H2O)    # Significant Effect
+fn_effectTest(data_t, data_t$pH_CaCl2)  # Significant Effect
+
+# Topsoil Values
+ref_pH_H2O = c(
+  3.8, # Old Growth on Podzol; (Lavkulich & Rowles, 1970)
+  4.4, # Alder on Podzol; (Lavkulich & Rowles, 1970)
+  4.5  # 2nd Growth on Podzol; (Strivelli, 2010)
+)
+
+# Topsoil Values
+ref_pH_CaCl2 = c(
+  3.2,
+  4.1,
+  3.9
+)
+
+qp_landUse(data_t, data_t$pH_H2O, ref_pH_H2O, c(5.5,7)) + labs(y="pH in H2O")
+
+
+ggplot(data_t, aes(x = Land_Use.f, y = pan_Ca)) +
+  geom_boxplot() +
+  scale_x_continuous(limits=c(0,4))
+
 
 fn_effectTest(dataSource = data_topSoil, data_topSoil$pH_H2O)
 

@@ -19,7 +19,8 @@ if (!require("pacman")) install.packages("pacman")
 
 # Load contributed packages with pacman
 pacman::p_load(
-  ragg,
+  rstudioapi, # R-Studio API
+  ragg,       # Render Engine needed for Plots
   tidyverse,  # Base
   dplyr,      # Analysis
   remote,     # Install package from GitHub
@@ -394,4 +395,24 @@ fn_quickNum = function(inputVariable, numDigits = 2){
   return(
     as.numeric(round(inputVariable, digits = numDigits))
   )
+}
+
+################################################################################
+#
+#
+#
+################################################################################
+
+fn_quickSave = function(savePlot, plotName = glue("{deparse(substitute(savePlot))}.png"), saveWidth = 16.51, saveHeight = 10){
+  ggsave (
+    filename = plotName,
+    plot = savePlot,
+    path = "./output",
+    scale = 1,
+    width = saveWidth,
+    height = saveHeight,
+    units = c ("cm"),
+    dpi = 300
+  )
+  return(plotName)
 }
