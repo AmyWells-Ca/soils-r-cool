@@ -15,7 +15,7 @@
 
 # Load Packages & Build Utilities
 source("./r/functions.R")
-source("./r/KFN_ini")
+source("./r/KFN_initialization.R")
 
 # Import Data set
 data <- readxl::read_xlsx("./input/readable_data.xlsx", sheet = "Machine Readable")

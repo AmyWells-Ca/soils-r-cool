@@ -41,6 +41,18 @@ if(projectSetup$outliers == TRUE){
   projectSetup$filtered = FALSE
 }
 
+projectSetup$theme = showPrompt(
+  title = "Default Plot Theme",
+  message = "Paper (0 / FALSE) / Presentation (1 / TRUE)",
+  default = "paper",
+)
+
+if( projectSetup$theme %in% c("presentation", 1, TRUE) ){
+  projectSetup$theme = "presentation"
+} else {
+  projectSetup$theme = "paper"
+}
+
 ################################################################################
 #                                                                              #
 #                            FACTOR INITIALIZATION                             #
@@ -107,13 +119,30 @@ data_t = filter(data, Depth_Top == 0)
 
 ################################################################################
 #                                                                              #
-#                            QUICK PLOT FUNCTIONS                              #
+#                        QUICK PLOT SHARED ELEMENTS                            #
 #                                                                              #
 ################################################################################
 
 theme_arrow = arrow(length = unit(0.3, "cm"), type = "closed", ends = "both")
+col_Region = "#d3d3d360"
 
-qp_landUse = function(dataSource, responseVariable, baselineValue = NULL, agRange = NULL){
+if(projectSetup$theme == "paper"){
+  qp_font = font_paper
+  qp_theme = theme_paper
+} else {
+  qp_font = font_presentation
+  qp_theme = theme_presentation
+}
+
+qp_SiCon = TeX("$\\bf{Si\\Concentration}\\,(mg\\,kg^{-1})$")
+
+################################################################################
+#                                                                              #
+#                            QUICK PLOT Land USE                               #
+#                                                                              #
+################################################################################
+
+qp_landUse = function(dataSource, responseVariable, baselineValue = NULL, agRange = NULL, Lim = NULL){
   
   # ggplot Initialization
   p_temp = ggplot(data = dataSource, mapping = aes(x = Land_Use.f, y = responseVariable, fill = Land_Use.f))
@@ -130,9 +159,8 @@ qp_landUse = function(dataSource, responseVariable, baselineValue = NULL, agRang
   agRange.avg = mean(agRange, na.rm = TRUE)
   agRange.min = min(agRange, na.rm = TRUE)
   agRange.max = max(agRange, na.rm = TRUE)
-    
-  # Extend X-Axis Depending on Available Comparisons
   
+  # Extend X-Axis Depending on Available Comparisons
   if( plotBaseline & !plotTarget ){                                             # Case 1: There are only reference values
     p_temp = p_temp + 
       scale_x_discrete(
@@ -177,8 +205,40 @@ qp_landUse = function(dataSource, responseVariable, baselineValue = NULL, agRang
     
   }
   
-  # Add Annotation Regions
+  # Y-Axis Formation
+  if(length(Lim)>=2){
+    
+    if(length(Lim)>=3){
+      limBy = Lim[3]
+    } else {
+      limBy = 10**((ceiling(log10(max(responseVariable)*1.1)))-1)
+    }
+    
+    p_temp = p_temp +
+      scale_y_continuous(
+        limits = c(Lim[1], Lim[2] ),
+        expand = c(0,0),
+        breaks = seq(Lim[1], Lim[2], by = limBy)
+      )
+  } else {
+    y = max(responseVariable)*1.1
+    m = log10(max(y))
+    m = ceiling(m) - 1
+    calLim = round(((y)/(10**m)),0)*(10**m)
+    
+    print(y)
+    print(m)
+    print(calLim)
+    
+    p_temp = p_temp + 
+      scale_y_continuous(
+        limits = c(0,calLim),
+        expand = c(0,0),
+        breaks = seq(0, calLim, by = 10**m)
+      )
+  }
   
+  # Add Annotation Regions
   if(plotBaseline){
     # Test if variable is a dataframe
     if(length(baselineValue) == 1){                                             # Case 1: Not a dataframe --> Line
@@ -188,7 +248,7 @@ qp_landUse = function(dataSource, responseVariable, baselineValue = NULL, agRang
     } else if (length(baselineValue) > 1) {                                     # Case 2: A dataframe --> Region
       p_temp = p_temp +
         annotation_raster(
-          "#d3d3d360",
+          col_Region,
           -Inf, Inf,
           baselineValue.min, baselineValue.max
         )
@@ -204,7 +264,7 @@ qp_landUse = function(dataSource, responseVariable, baselineValue = NULL, agRang
     } else if (length(agRange) > 1) {                                           # Case 2: A dataframe --> Region
       p_temp = p_temp +
         annotation_raster(
-          "#d3d3d360",
+          col_Region,
           -Inf, Inf,
           agRange.min,
           agRange.max
@@ -232,6 +292,7 @@ qp_landUse = function(dataSource, responseVariable, baselineValue = NULL, agRang
         y = baselineValue.avg,
         fill = "white",
         label.padding = unit(0.5,"lines"),
+        family = qp_font
       )
   }
   
@@ -254,6 +315,7 @@ qp_landUse = function(dataSource, responseVariable, baselineValue = NULL, agRang
         x = agTarget,
         y = agRange.avg,
         label.padding = unit(0.5,"lines"),
+        family = qp_font
       )
   }
   
@@ -271,15 +333,139 @@ qp_landUse = function(dataSource, responseVariable, baselineValue = NULL, agRang
       colour = "black"
     ) +
     labs(
-      x = "Land Management",
+      x = TeX("$\\bf{Land\\,Management}$"),
       y = glue("{deparse(substitute(responseVariable))}")
-    )
+    ) +
+    qp_theme
   
   return(p_temp)
 }
 
-qp_depth = function(dataSource, responseVariable, reference){
+################################################################################
+#                                                                              #
+#                              QUICK PLOT DEPTH                                #
+#                                                                              #
+################################################################################
+
+qp_depth = function(dataSource, responseVariable, baselineValue = NULL, agRange = NULL, Lim = NULL){
   
+  # ggplot Initialization
+  p_temp = ggplot(data = dataSource, mapping = aes(x = responseVariable, y = Depth_Jitter, fill = Land_Use.f, shape = Land_Use.f))
+  
+  # Prior tests for for not(is.null(variable))
+  plotBaseline = !(is.null(baselineValue))
+  plotTarget = !(is.null(agRange))
+
+  # Calculate Values for Reference Levels
+  baselineValue.avg = mean(baselineValue, na.rm = TRUE)
+  baselineValue.min = min(baselineValue, na.rm = TRUE)
+  baselineValue.max = max(baselineValue, na.rm = TRUE)
+  agRange.avg = mean(agRange, na.rm = TRUE)
+  agRange.min = min(agRange, na.rm = TRUE)
+  agRange.max = max(agRange, na.rm = TRUE)
+  
+  if(plotTarget){
+    if(agRange.min == agRange.max){
+      p_temp = p_temp + 
+        vline(xintercept = agRange.avg)
+    } else {
+      p_temp = p_temp +
+        annotation_raster(
+          col_Region,
+          agRange.min, agRange.max,
+          -Inf, Inf
+        )
+    }
+  }
+  
+  # X-Axis Formation
+  if(length(Lim)>=2){
+    
+    if(length(Lim)>=3){
+      limBy = Lim[3]
+    } else {
+      limBy = 10**((ceiling(log10(max(responseVariable)*1.1)))-1)
+    }
+    
+    p_temp = p_temp +
+      scale_x_continuous(
+        limits = c(Lim[1], Lim[2] ),
+        expand = c(0,0),
+        breaks = seq(Lim[1], Lim[2], by = limBy),
+        position = "top"
+      )
+  } else {
+    y = max(responseVariable)*1.1
+    m = log10(max(y))
+    m = ceiling(m) - 1
+    calLim = round(((y)/(10**m)),0)*(10**m)
+    
+    print(y)
+    print(m)
+    print(calLim)
+    
+    p_temp = p_temp + 
+      scale_x_continuous(
+        limits = c(0,calLim),
+        expand = c(0,0),
+        breaks = seq(0, calLim, by = 10**m),
+        position = "top"
+      )
+  }
+  
+  # Build the rest of the plot
+  
+  p_temp = p_temp +
+    geom_point(size = 3) +
+    scale_y_reverse(
+      limits = c(0,75),
+      expand = c(0,0),
+      breaks = c(0,15,35,55,75),
+      minor_breaks = seq(0, 75, by = 5)
+    ) + 
+    fn_fillScale() +
+    fn_shapeScale() +
+    labs(
+      y = TeX("$\\bf{Sampling\\,Depth}\\,(cm)"),
+      x = glue("{deparse(substitute(responseVariable))}")
+    ) +
+    qp_theme
+  
+  return(p_temp)
+}
+
+################################################################################
+#                                                                              #
+#                           QUICK PLOT FUNCTIONS                               #
+#                                                                              #
+################################################################################
+
+fn_statCompare = function(yPos = NULL){
+  if(is.null(yPos)){
+    return(
+      stat_pwc(
+        method = "t.test",
+        p.adjust.method = "bonferroni",
+        label = "p.adj.format",
+        tip.length = 0,
+        bracket.shorten = 0.1
+      )
+    )
+  } else if (length(yPos) == 3) {
+    return(
+      stat_pwc(
+        method = "t.test",
+        p.adjust.method = "bonferroni",
+        label = "p.adj.format",
+        tip.length = 0,
+        bracket.shorten = 0.1,
+        y.position = c(yPos[1],yPos[2],yPos[3])
+      )
+    )
+  } else {
+    cat("3 Arguments are Needed for yPos... ", length(yPos), " were provided", "\n")
+    return()
+  }
 }
 
 projectSetup$complete = TRUE

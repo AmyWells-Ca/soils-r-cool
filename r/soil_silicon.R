@@ -16,7 +16,7 @@
 
 # Load Packages & Build Utilities
 source("./r/functions.R")
-source("./r/KFN_ini")
+source("./r/KFN_initialization.R")
 
 
 # Land Use as Factor
@@ -46,19 +46,64 @@ statComparisons <- list(
 
 ################################################################################
 #
+# Q: Can microplot samples be grouped with top soil samples for 
+# statistical analysis of Si?
+#
+################################################################################
+
+# NOTE: Last run on April 13, 2026
+
+fn_effectTest(data_t, data_t$Si_CaCl2)    #  Transect P: 0.554
+                                          # Plot Type P: 0.573
+
+fn_effectTest(data_t, data_t$Si_Acetic)   #  Transect P: 0.939
+                                          # Plot Type P: 0.316
+
+fn_effectTest(data_t, data_t$Oxa_Si)      #  Transect P: 0.932
+                                          # Plot Type P: 0.276
+
+fn_effectTest(data_t, data_t$Oxa_Al)      #  Transect P: 0.807
+                                          # Plot Type P: 0.331
+
+fn_effectTest(data_t, data_t$Oxa_AlSi)    #  Transect P: 0.387
+                                          # Plot Type P: 0.783
+
+fn_effectTest(data_t, data_t$Si_kin)      #  Transect P: 0.172
+                                          # Plot Type P: 0.483
+
+fn_effectTest(data_t, data_t$Al_kin)      #  Transect P: 0.821
+                                          # Plot Type P: 0.358
+
+fn_effectTest(data_t, data_t$SiAl_kin)    #  Transect P: 0.997
+                                          # Plot Type P: 0.266
+
+# CONCLUSION:
+# Top Soil Samples (Depth 0-15) and Microplot Samples can be grouped together
+# during the statistical analysis of Si in soils
+
+################################################################################
+#
 # Dissolved Silicon
 #
 ################################################################################
 
-
-p_t_DSi_001 <- qp_landUse(data_t, data_t$Si_CaCl2)
+p_t_DSi_001 = qp_landUse(data_t, data_t$Si_CaCl2,baselineValue = 5 , Lim = c(0,40)) +
+  fn_statCompare(c(32.5,35,32.5)) +
+  labs(
+    y = qp_SiCon
+  )
 
 p_t_DSi_001
 
-# Testing Transect/Plot Type Effects
-fn_effectTest(data_topSoil, data_topSoil$Si_CaCl2)
-## Transects & Plot Type do not have a statistically significant effect (p>0.1)
-## Therefore, data$topSoil samples can be used for Si_CaCl2 to compare potential land use effects
+p_p_DSi_002 <- qp_depth(data_p, data_p$Si_CaCl2) +
+  theme(legend.position = "bottom", legend.box = "horizontal") + guides(fill = guide_legend(title.position = "top", title.hjust = 0.5)) +
+  labs(
+    x = qp_SiCon
+  )
+
+fn_quickSave(p_p_DSi_003)
+
+
 
 p101 <- ggplot(data = data_topSoil, mapping = aes(x = Land_Use.f, y=Si_CaCl2, fill = Land_Use.f)) +
   geom_boxplot(colour = "black") +
@@ -476,6 +521,11 @@ ggsave (
 # Amorphous Si
 #
 ################################################################################
+
+# p_p_ASi_001
+
+ggplot(data = data_p, aes(x = Si_kin, y = Depth_Jitter, fill = Land_Use.f, shape = Land_Use.f)) + geom_point(size = 3) + fn_fillScale() + fn_shapeScale() + fn_yLimR(0,80)
+
 
 # Testing Transect/Plot Type Effects
 fn_effectTest(data_topSoil, data_topSoil$Si_kin)

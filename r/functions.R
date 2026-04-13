@@ -65,6 +65,7 @@ theme_main = theme_gray() + theme(
   panel.background = element_rect(fill = "white"),
   panel.border = element_rect(color = "black", linetype = "solid"),
   panel.grid.major = element_line(color = "lightgray", linetype = "dashed"),
+  panel.grid.minor = element_line(color = "lightgray", linetype = "dotted"),
   plot.background = element_rect(fill = "white"),
 )
 
@@ -77,6 +78,7 @@ theme_main = theme_gray() + theme(
 font_presentation = "Trebuchet MS" # <-- Change the font here
 
 theme_presentation = theme(
+  text = element_text(family = font_presentation),
   plot.title = element_text(size = 20, family = font_presentation, face = "bold", color = "black"),
   plot.subtitle = element_text(size = 16, family = font_presentation, color = "black"),
   plot.caption = element_text(size = 14, family = font_presentation, color = "black"),
@@ -96,6 +98,7 @@ theme_presentation = theme(
 font_paper = "Times New Roman" # <-- Change the font here
 
 theme_paper = theme(
+  text = element_text(family = font_paper),
   plot.title = element_text(size = 12, family = font_paper, face = "bold", color = "black"),
   plot.subtitle = element_text(size = 11, family = font_paper, color = "black"),
   plot.caption = element_text(size = 9, family = font_paper, color = "black"),
@@ -320,6 +323,7 @@ addBoxPlot = function(xValues, yValues){
     geom_boxplot(aes(xValues, yValues))
   )
 }
+
 
 
 
