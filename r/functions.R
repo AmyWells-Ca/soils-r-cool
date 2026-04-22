@@ -103,8 +103,8 @@ theme_paper = theme(
   plot.subtitle = element_text(size = 11, family = font_paper, color = "black"),
   plot.caption = element_text(size = 9, family = font_paper, color = "black"),
   legend.title = element_text(size = 10, family = font_paper),
-  axis.title.x = element_text(size = 12, family = font_paper),
-  axis.title.y = element_text(size = 12, family = font_paper),
+  axis.title.x = element_text(size = 11, family = font_paper),
+  axis.title.y = element_text(size = 11, family = font_paper),
   axis.text.x = element_text(size = 10, family = font_paper),
   axis.text.y = element_text(size = 10, family = font_paper)
 )

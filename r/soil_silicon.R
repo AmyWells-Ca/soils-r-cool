@@ -14,8 +14,7 @@
 #
 ################################################################################
 
-# Load Packages & Build Utilities
-source("./r/functions.R")
+# Initialize Data & Functions
 source("./r/KFN_initialization.R")
 
 
@@ -53,29 +52,29 @@ statComparisons <- list(
 
 # NOTE: Last run on April 13, 2026
 
-fn_effectTest(data_t, data_t$Si_CaCl2)    #  Transect P: 0.554
-                                          # Plot Type P: 0.573
-
-fn_effectTest(data_t, data_t$Si_Acetic)   #  Transect P: 0.939
-                                          # Plot Type P: 0.316
-
-fn_effectTest(data_t, data_t$Oxa_Si)      #  Transect P: 0.932
-                                          # Plot Type P: 0.276
-
-fn_effectTest(data_t, data_t$Oxa_Al)      #  Transect P: 0.807
-                                          # Plot Type P: 0.331
-
-fn_effectTest(data_t, data_t$Oxa_AlSi)    #  Transect P: 0.387
-                                          # Plot Type P: 0.783
-
-fn_effectTest(data_t, data_t$Si_kin)      #  Transect P: 0.172
-                                          # Plot Type P: 0.483
-
-fn_effectTest(data_t, data_t$Al_kin)      #  Transect P: 0.821
-                                          # Plot Type P: 0.358
-
-fn_effectTest(data_t, data_t$SiAl_kin)    #  Transect P: 0.997
-                                          # Plot Type P: 0.266
+# fn_effectTest(data_t, data_t$Si_CaCl2)    #  Transect P: 0.554
+#                                           # Plot Type P: 0.573
+# 
+# fn_effectTest(data_t, data_t$Si_Acetic)   #  Transect P: 0.939
+#                                           # Plot Type P: 0.316
+# 
+# fn_effectTest(data_t, data_t$Oxa_Si)      #  Transect P: 0.932
+#                                           # Plot Type P: 0.276
+# 
+# fn_effectTest(data_t, data_t$Oxa_Al)      #  Transect P: 0.807
+#                                           # Plot Type P: 0.331
+# 
+# fn_effectTest(data_t, data_t$Oxa_AlSi)    #  Transect P: 0.387
+#                                           # Plot Type P: 0.783
+# 
+# fn_effectTest(data_t, data_t$Si_kin)      #  Transect P: 0.172
+#                                           # Plot Type P: 0.483
+# 
+# fn_effectTest(data_t, data_t$Al_kin)      #  Transect P: 0.821
+#                                           # Plot Type P: 0.358
+# 
+# fn_effectTest(data_t, data_t$SiAl_kin)    #  Transect P: 0.997
+#                                           # Plot Type P: 0.266
 
 # CONCLUSION:
 # Top Soil Samples (Depth 0-15) and Microplot Samples can be grouped together
@@ -87,23 +86,253 @@ fn_effectTest(data_t, data_t$SiAl_kin)    #  Transect P: 0.997
 #
 ################################################################################
 
-p_t_DSi_001 = qp_landUse(data_t, data_t$Si_CaCl2,baselineValue = 5 , Lim = c(0,40)) +
+# Land Use (Spatial Variation)
+p_t_DSi_001 = qp_landUse(data_t, data_t$Si_CaCl2, baselineValue = 5, Lim = c(0,40)) +
   fn_statCompare(c(32.5,35,32.5)) +
   labs(
+    subtitle = qp_nTopSoil,
     y = qp_SiCon
   )
 
 p_t_DSi_001
+fn_quickSave(p_t_DSi_001)
 
-p_p_DSi_002 <- qp_depth(data_p, data_p$Si_CaCl2) +
-  theme(legend.position = "bottom", legend.box = "horizontal") + guides(fill = guide_legend(title.position = "top", title.hjust = 0.5)) +
+# Depth (Effect of Depth)
+
+# Depth + Land Use Model
+model_DSi.d <- lm(Si_CaCl2 ~ Depth_Avg+Land_Use.f, data = data_p)
+
+summary(model_DSi.d)                       # Regression is statistically significant --> p = 0.001248
+                                           # R^2 = 0.538 --> Not great, not terrible
+                                           # Adj_R^2 = 0.4687
+
+Anova(model_DSi.d, type = c("III"))        #    Depth p = 0.020490 --> Significant!
+                                           # Land_Use p = 0.002156 --> Significant!
+
+fn_statTest(model_DSi.d,                   #      Linearity: No curvilinear relationship
+            testTheme = qp_theme,          # Equal Variance: Equal variance across predicted values
+            saveTest = TRUE)               #      Normality: Normally distributed
+
+p_p_DSi_002 = qp_depth(data_p, data_p$Si_CaCl2) +
+  qp_lmANOVA(model_DSi.d)$lines +
   labs(
-    x = qp_SiCon
+    subtitle = qp_nPits,
+    x = qp_SiCon,
+    caption = qp_lmANOVA(model_DSi.d)$caption
   )
 
-fn_quickSave(p_p_DSi_003)
+p_p_DSi_002
+fn_quickSave(p_p_DSi_002)
+
+################################################################################
+#
+# Adsorbed Si
+#
+################################################################################
+
+# Land Use (Spatial Variation)
+p_top_AdSi_001 = qp_landUse(data_t, data_t$Si_Acetic, Lim = c(0,125,25)) +
+  fn_statCompare(c(100,112.5,100)) +
+  labs(
+    subtitle = qp_nTopSoil,
+    y = qp_SiCon
+  )
+
+p_top_AdSi_001
+fn_quickSave(p_top_AdSi_001)
+
+# Depth (Effect of Depth)
+
+# Depth + Land Use Model
+model_AdSi.d <- lm(Si_Acetic ~ Depth_Avg+Land_Use.f, data = data_p)
+
+summary(model_AdSi.d)                       # Regression is statistically significant --> p = 0.0003994
+                                            # R^2 = 0.4784 --> Not great, not terrible
+                                            # Adj_R^2 = 0.4002
+
+Anova(model_AdSi.d, type = c("III"))        #    Depth p = 0.001741 --> Significant!
+                                            # Land_Use p = 0.095206 --> Possibly Significant!
+
+fn_statTest(model_AdSi.d,                   #      Linearity: No curvilinear relationship
+            testTheme = qp_theme,           # Equal Variance: Equal variance across predicted values
+            saveTest = TRUE)                #      Normality: Normally distributed, slightly faavours higher end
+
+p_pit_AdSi_002 = qp_depth(data_p, data_p$Si_Acetic, Lim = c(0,250,50)) +
+  qp_lmANOVA(model_AdSi.d)$lines +
+  labs(
+    subtitle = qp_nPits,
+    x = qp_SiCon,
+    caption = qp_lmANOVA(model_AdSi.d)$caption
+  )
+
+p_pit_AdSi_002
+fn_quickSave(p_pit_AdSi_002)
+
+################################################################################
+#
+# Weakly Crystaline Si (Oxalate Extractable)
+#
+################################################################################
+
+# Land Use (Spatial Variation)
+p_top_WkSi_001 = qp_landUse(data_t, data_t$Oxa_Si, Lim = c(0,4500,500)) +
+  fn_statCompare(c(4000,4250,4000)) +
+  labs(
+    subtitle = qp_nTopSoil,
+    y = qp_SiCon
+  )
+
+p_top_WkSi_001
+fn_quickSave(p_top_WkSi_001)
+
+# Depth (Effect of Depth)
+
+# Depth + Land Use Model
+# model_WkSi.d <- lm(Oxa_Si ~ Depth_Avg+Land_Use.f, data = data_p)
+# 
+# summary(model_WkSi.d)                       # Regression is statistically significant --> p = 0.01621
+#                                             # R^2 = 0.3953 --> Not great
+#                                             # Adj_R^2 = 0.3046
+# 
+# Anova(model_WkSi.d, type = c("III"))        #    Depth p = 0.02318 --> Significant!
+#                                             # Land_Use p = 0.04924 --> Barely Significant!
+# 
+# fn_statTest(model_WkSi.d,                   #      Linearity: No curvilinear relationship
+#             testTheme = qp_theme,           # Equal Variance: Unequal variance across predicted values --> Log or sqrt transform needed
+#             saveTest = TRUE)                #      Normality: Normally distributed, but peaks around 0
+
+model_WkSi.d <- lm(log10(Oxa_Si) ~ Depth_Avg+Land_Use.f, data = data_p)
+
+summary(model_WkSi.d)                       # Regression is statistically significant --> p = 0.0005371
+                                            # R^2 = 0.5766 --> Solid
+                                            # Adj_R^2 = 0.5131
+
+Anova(model_WkSi.d, type = c("III"))        #    Depth p = 0.001118 --> Significant!
+                                            # Land_Use p = 0.007141 --> Significant!
+
+fn_statTest(model_WkSi.d,                   #      Linearity: No curvilinear relationship
+            testTheme = qp_theme,           # Equal Variance: Equal variance!
+            saveTest = TRUE)                #      Normality: As normally distributed according to Shapiro-Wilks, but looks to be a bimodal distribution 
+
+p_pit_WkSi_002 = qp_depth(data_p, log10(data_p$Oxa_Si), Lim = c(2,5)) +
+  qp_lmANOVA(model_WkSi.d)$lines +
+  labs(
+    subtitle = qp_nPits,
+    x = TeX("$\\bf{Log_{10}\\,Si\\,Concentration}\\,\\,log_{10}(mg\\,kg^{-1})$"),
+    caption = qp_lmANOVA(model_WkSi.d)$caption
+  )
+
+p_pit_WkSi_002
+fn_quickSave(p_pit_WkSi_002)
+
+################################################################################
+#
+# Amorphous Silicon (ASi)
+#
+################################################################################
+
+# Land Use (Spatial Variation)
+p_top_ASi_001 = qp_landUse(data_t, data_t$Si_kin) +
+  fn_statCompare(c(3500,3750,3500)) +
+  labs(
+    subtitle = qp_nTopSoil,
+    y = qp_SiCon
+  )
+
+p_top_ASi_001
+fn_quickSave(p_top_ASi_001)
+
+# Depth (Effect of Depth)
+
+# Depth + Land Use Model
+model_ASi.d <- lm(Si_kin ~ Depth_Avg+Land_Use.f, data = data_p)
+
+summary(model_ASi.d)                       # Regression is statistically significant --> p = 0.02545
+                                           # R^2 = 0.3654 --> Not great
+                                           # Adj_R^2 = 0.2702
+
+Anova(model_ASi.d, type = c("III"))        #    Depth p = 0.03565 --> Significant!
+                                           # Land_Use p = 0.06132 --> Possibly Significant!
+
+fn_statTest(model_ASi.d,                   #      Linearity: No curvilinear relationship
+            testTheme = qp_theme,          # Equal Variance: Equal variance across predicted values
+            saveTest = TRUE)               #      Normality: Not normally distributed
+
+p_pit_ASi_002 = qp_depth(data_p, data_p$Si_kin) +
+  qp_lmANOVA(model_ASi.d)$lines +
+  labs(
+    subtitle = qp_nPits,
+    x = qp_SiCon,
+    caption = qp_lmANOVA(model_ASi.d)$caption
+  )
+
+p_pit_ASi_002
+fn_quickSave(p_pit_ASi_002)
+
+################################################################################
+#
+# Ca & Si
+#
+################################################################################
+
+# Plant Available Calcium & Silicon
+tempLab_x = TeX("$\\bf{Plant\\,Available\\,Ca}\\,(mg\\,kg^{-1})$")
+
+p_comp_CaSi_001 = qp_Ratio(data_c, data_c$pan_Ca, data_c$Si_CaCl2, yLim = c(0,30,5)) + labs(y = TeX("$\\bf{Dissolved\\,Si}\\,(mg\\,kg^{-1})$"), x = tempLab_x)
+p_comp_CaSi_001
+p_comp_CaSi_002 = qp_Ratio(data_c, data_c$pan_Ca, data_c$Si_Acetic, yLim = c(0,250,50)) + labs(y = TeX("$\\bf{Adsorbed\\,Si}\\,(mg\\,kg^{-1})$"), x = tempLab_x)
+p_comp_CaSi_002
+p_comp_CaSi_003 = qp_Ratio(data_c, data_c$pan_Ca, data_c$Oxa_Si, yLim = c(0,15000,2500)) + labs(y = TeX("$\\bf{Weakly Crystaline\\,Si}\\,(mg\\,kg^{-1})$"), x = tempLab_x)
+p_comp_CaSi_003
+p_comp_CaSi_004 = qp_Ratio(data_c, data_c$pan_Ca, data_c$Si_kin, yLim = c(0,10000,2500)) + labs(y = TeX("$\\bf{Amorphous\\,Si}\\,(mg\\,kg^{-1})$"), x = tempLab_x)
+p_comp_CaSi_004
+
+p_comp_CaSi_005 = (p_comp_CaSi_001 + p_comp_CaSi_002)/(p_comp_CaSi_003 + p_comp_CaSi_004) + plot_layout(guides = "collect") & theme(legend.position = 'bottom', legend.direction = "horizontal") & guides(fill = guide_legend(title.position = "top", title.hjust = 0.5))
+p_comp_CaSi_005
+
+fn_quickSave(p_comp_CaSi_005, saveHeight = 16)
+
+rm(tempLab_x)
+
+# Total Calcium & Silicon
 
 
+
+caFisher = 0.5*log(1+data_p$total_Ca)/(1-data_p$total_Ca)
+
+caTransform = data_p$total_Ca
+
+siTransform = sqrt(data_p$Si_kin)
+
+ggplot(data = data_p, mapping = aes(x = siTransform, y = caTransform , fill = Land_Use.f, shape = Land_Use.f)) +
+  geom_point(colour = "black", size = 3) +
+  fn_fillScale() +
+  fn_shapeScale()
+
+
+mTest = lm(siTransform ~ caTransform , data = data_p)
+
+fn_statTest(mTest)
+
+summary(mTest)
+
+
+ggplot(data_p, mapping = aes(x = Si_CaCl2, y = total_Ca, fill = Land_Use.f, shape = Land_Use.f)) + geom_point(colour = "black", size = 3) + fn_fillScale() + fn_shapeScale()
+ggplot(data_p, mapping = aes(x = Si_Acetic, y = total_Ca, fill = Land_Use.f, shape = Land_Use.f)) + geom_point(colour = "black", size = 3) + fn_fillScale() + fn_shapeScale()
+ggplot(data_p, mapping = aes(x = Oxa_Si, y = total_Ca, fill = Land_Use.f, shape = Land_Use.f)) + geom_point(colour = "black", size = 3) + fn_fillScale() + fn_shapeScale()
+ggplot(data_p, mapping = aes(x = Si_kin, y = total_Ca, fill = Land_Use.f, shape = Land_Use.f)) + geom_point(colour = "black", size = 3) + fn_fillScale() + fn_shapeScale()
+
+
+m_test = lm(Si_Acetic ~ total_Ca+Depth_Avg, data_p)
+
+fn_statTest(m_test)
+
+summary(m_test)
+
+Anova(m_test, type = c("III"))
+
+
+r################################################################################
 
 p101 <- ggplot(data = data_topSoil, mapping = aes(x = Land_Use.f, y=Si_CaCl2, fill = Land_Use.f)) +
   geom_boxplot(colour = "black") +
@@ -128,7 +357,7 @@ p101 <- ggplot(data = data_topSoil, mapping = aes(x = Land_Use.f, y=Si_CaCl2, fi
 
 p101
 
-model_DSi.d <- lm(Si_CaCl2 ~ Depth_Avg+Land_Use.f, data = data_depth)
+model_DSi.d <- lm(Si_CaCl2 ~ Depth_Avg+Land_Use.f, data = data_p)
 m_DSi.d.summary <- summary(model_DSi.d)
 m_DSi.d.Anova <- Anova(model_DSi.d, type = c("III"))
 
@@ -137,8 +366,8 @@ fn_statTest(model_DSi.d)
 m_DSi.d.summary
 m_DSi.d.Anova
 
-m_DSi.d.tTest <- pairwise.t.test(x = data_depth$Si_CaCl2,
-                g = data_depth$Land_Use.f,
+m_DSi.d.tTest <- pairwise.t.test(x = data_p$Si_CaCl2,
+                g = data_p$Land_Use.f,
                 p.adjust.method = "bonferroni"
 )
 

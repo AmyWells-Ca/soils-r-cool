@@ -19,13 +19,17 @@
 ################################################################################
 
 # Load Packages & Build Utilities
+print("Loading Packages & Functions from \"./r/functions.R\"", quote = FALSE)
+projectSetup = c()
 source("./r/functions.R")
+print("Packages Successfully Loaded")
 
+print("Importing Data from \"./input/readable_data.xlsx\"", quote = FALSE)
 # Import Data from "
 data <- readxl::read_xlsx("./input/readable_data.xlsx", sheet = "Machine Readable")
 # data <- readxl::read_xlsx("./input/kwiakah_sr3_soildata", sheet = "Machine Readable")
 
-projectSetup = c()
+print("Data Imported from \"./input/readable_data.xlsx\"", quote = FALSE)
 
 projectSetup$outliers = showQuestion(
   title = "Data CleanUp",
@@ -134,7 +138,13 @@ if(projectSetup$theme == "paper"){
   qp_theme = theme_presentation
 }
 
-qp_SiCon = TeX("$\\bf{Si\\Concentration}\\,(mg\\,kg^{-1})$")
+qp_SiCon = TeX("$\\bf{Si\\,Concentration}\\,(mg\\,kg^{-1})$")
+
+qp_nComposite = glue("All Soil Samples: n={nrow(data_c)} | mp = {nrow(data_m)} | sp = {nrow(data_p)}")
+qp_nPits = glue("Soil Pit Samples: n={nrow(data_p)}")
+qp_nPitsB = glue("Transect B Samples: n={nrow(data_pB)}")
+qp_nMicroplot = glue("Microplot Samples: n={nrow(data_m)}")
+qp_nTopSoil = glue("Top Soil Samples: n = {nrow(data_t)} | Microplot Samples: n = {nrow(data_m)} | 0-15 Samples: n = {nrow(data_t)-nrow(data_m)}")
 
 ################################################################################
 #                                                                              #
@@ -211,7 +221,7 @@ qp_landUse = function(dataSource, responseVariable, baselineValue = NULL, agRang
     if(length(Lim)>=3){
       limBy = Lim[3]
     } else {
-      limBy = 10**((ceiling(log10(max(responseVariable)*1.1)))-1)
+      limBy = 10**((ceiling(log10(max(responseVariable)*1.2)))-1)
     }
     
     p_temp = p_temp +
@@ -221,7 +231,7 @@ qp_landUse = function(dataSource, responseVariable, baselineValue = NULL, agRang
         breaks = seq(Lim[1], Lim[2], by = limBy)
       )
   } else {
-    y = max(responseVariable)*1.1
+    y = max(responseVariable)*1.2
     m = log10(max(y))
     m = ceiling(m) - 1
     calLim = round(((y)/(10**m)),0)*(10**m)
@@ -384,7 +394,7 @@ qp_depth = function(dataSource, responseVariable, baselineValue = NULL, agRange 
     if(length(Lim)>=3){
       limBy = Lim[3]
     } else {
-      limBy = 10**((ceiling(log10(max(responseVariable)*1.1)))-1)
+      limBy = 10**((ceiling(log10(max(responseVariable)*1.2)))-1)
     }
     
     p_temp = p_temp +
@@ -395,7 +405,7 @@ qp_depth = function(dataSource, responseVariable, baselineValue = NULL, agRange 
         position = "top"
       )
   } else {
-    y = max(responseVariable)*1.1
+    y = max(responseVariable)*1.2
     m = log10(max(y))
     m = ceiling(m) - 1
     calLim = round(((y)/(10**m)),0)*(10**m)
@@ -436,6 +446,73 @@ qp_depth = function(dataSource, responseVariable, baselineValue = NULL, agRange 
 
 ################################################################################
 #                                                                              #
+#                              QUICK PLOT RATIO                                #
+#                                                                              #
+################################################################################
+
+qp_Ratio = function(dataSource, xVariable, yVariable, xLim = NULL, yLim = NULL){
+  
+  # ggplot Initialization
+  p_temp = ggplot(data = dataSource, mapping = aes(x = xVariable, y = yVariable, fill = Land_Use.f, shape = Land_Use.f))
+  
+  # Axis Variables
+  xMin = 0
+  xMagnitude = (ceiling(log10(max(xVariable)*1.2))-1)
+  xMax = round(((max(xVariable)*1.2)/(10**xMagnitude)),0)*(10**xMagnitude)
+  xBreaks = 10**xMagnitude
+  yMin = 0
+  yMagnitude = (ceiling(log10(max(yVariable)*1.2))-1)
+  yMax = round(((max(yVariable)*1.2)/(10**yMagnitude)),0)*(10**yMagnitude)
+  yBreaks = 10**yMagnitude
+  
+  # Set X Axis Limits
+  if(length(xLim)>=2){
+    xMin = xLim[1]
+    xMax = xLim[2]
+    if(length(xLim)>=3){
+      xBreaks = xLim[3]
+    }
+  }
+  
+  # Set Y Axis Limits
+  if(length(yLim)>=2){
+    yMin = yLim[1]
+    yMax = yLim[2]
+    if(length(yLim)>=3){
+      yBreaks = yLim[3]
+    }
+  }
+  
+  p_temp = p_temp +
+    scale_x_continuous(
+      limits = c(xMin, xMax),
+      breaks = seq(xMin, xMax, by = xBreaks),
+      expand = c(0,0)
+    ) +
+    scale_y_continuous(
+      limits = c(yMin, yMax),
+      breaks = seq(yMin, yMax, by = yBreaks),
+      expand = c(0,0)
+    )
+  
+  
+  # Build the rest of the plot
+  p_temp = p_temp +
+    geom_point(colour = "black", size = 3) + 
+    fn_fillScale() +
+    fn_shapeScale() +
+    labs(
+      x = glue("{deparse(substitute(xVariable))}"),
+      y = glue("{deparse(substitute(yVariable))}")
+    ) +
+    qp_theme
+  
+  return(p_temp)
+}
+
+
+################################################################################
+#                                                                              #
 #                           QUICK PLOT FUNCTIONS                               #
 #                                                                              #
 ################################################################################
@@ -448,7 +525,8 @@ fn_statCompare = function(yPos = NULL){
         p.adjust.method = "bonferroni",
         label = "p.adj.format",
         tip.length = 0,
-        bracket.shorten = 0.1
+        bracket.shorten = 0.1,
+        family = qp_font
       )
     )
   } else if (length(yPos) == 3) {
@@ -459,13 +537,100 @@ fn_statCompare = function(yPos = NULL){
         label = "p.adj.format",
         tip.length = 0,
         bracket.shorten = 0.1,
-        y.position = c(yPos[1],yPos[2],yPos[3])
+        y.position = c(yPos[1],yPos[2],yPos[3]),
+        family = qp_font
       )
     )
   } else {
     cat("3 Arguments are Needed for yPos... ", length(yPos), " were provided", "\n")
     return()
   }
+}
+qp_lmANOVA = function(referenceModel, plotOrientation = "y"){
+  # Plot Orientation --> Which axis is drives the response variable
+  # By default Y as this function is presumed to be used with the qp_depth function
+
+  # Model Summary
+  model_Summary = summary(referenceModel)
+  
+  # Type III Anova
+  model_Anova = Anova(referenceModel, type = c("III"))
+  
+  # Single Line Model
+  model_intercept_1 = 0 # Standard Intercept
+  model_slope_1 = 0 # Standard Slope
+  
+  # Parallel Lines Model
+  model_intercept_2 = 0 # Intercept Adjustment for Treatment 2
+  model_intercept_3 = 0 #                      for Treatment 3
+  
+  # Multiple Lines Model
+  model_slope_2 = 0 # Slope Adjustment for Treatment 2
+  model_slope_3 = 0 #                  for Treatment 3
+  
+  # Significance of the Model --> Added to Caption
+  model_p_Model = fn_quickNum(fn_simpleF(model_Summary),4)
+  model_p_Depth = fn_quickNum(model_Anova$`Pr(>F)`[2],4)
+  model_p_LandUse = fn_quickNum(model_Anova$`Pr(>F)`[3],4)
+  
+  if(length(referenceModel$coefficients) >= 2) {
+    print(">= 2")
+    model_intercept_1 = as.numeric(referenceModel$coefficients[1])
+    model_slope_1 = as.numeric(referenceModel$coefficients[2])
+    model_slope_2 = model_slope_1
+    model_slope_3 = model_slope_1
+  }
+  
+  if (length(referenceModel$coefficients) >= 4) {
+    print(">= 4")
+    model_intercept_2 = model_intercept_1 + as.numeric(referenceModel$coefficients[3])
+    model_intercept_3 = model_intercept_1 + as.numeric(referenceModel$coefficients[4])    
+  } 
+  
+  if (length(referenceModel$coefficients) == 6){
+    print(">= 6")
+    model_slope_2 = model_slope_1 + as.numeric(referenceModel$coefficients[5])
+    model_m3 = model_slope_1 + as.numeric(referenceModel$coefficients[6])    
+  }
+  
+  if(plotOrientation == "y"){  # Y drives X --> Transform Needed 
+    model_intercept_1 = model_intercept_1/model_slope_1
+    model_slope_1 = -1/model_slope_1
+    model_intercept_2 = model_intercept_2/model_slope_2
+    model_intercept_3 = model_intercept_3/model_slope_3
+    model_slope_2 = -1/model_slope_2
+    model_slope_3 = -1/model_slope_3
+  }
+  
+  print("Plot Coefficients")
+  cat("Intercept 1: ", model_intercept_1,"\n")
+  cat("Intercept 2: ",model_intercept_2,"\n")
+  cat("Intercept 3: ",model_intercept_3,"\n")
+  cat("Slope 1: ",model_slope_1,"\n")
+  cat("Slope 2: ",model_slope_2,"\n")
+  cat("Slope 3: ",model_slope_3,"\n")
+  
+  output = c()
+
+  if(length(referenceModel$coefficients) == 2){
+    output$lines = list(
+      geom_abline(aes(intercept = model_intercept_1, slope = model_slope_1), colour = "black", linetype = 2)
+    )
+    
+    output$caption = glue("Model p={model_p_Model}")
+    
+  } else {
+    output$lines = list(
+      geom_abline(aes(intercept = model_intercept_1, slope = model_slope_1, colour = "Cutblock"), linetype = 2),
+      geom_abline(aes(intercept = model_intercept_2, slope = model_slope_2, colour = "Forest Garden"), linetype = 4),
+      geom_abline(aes(intercept = model_intercept_3, slope = model_slope_3, colour = "Periphery"), linetype = 5),
+      fn_colourScale()
+    )
+    
+    output$caption = glue("Model p={model_p_Model}; Depth p={model_p_Depth}; Land Use p={model_p_LandUse}")
+  }
+
+  return(output)
 }
 
 projectSetup$complete = TRUE
