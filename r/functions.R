@@ -278,10 +278,45 @@ fn_yLimR = function(localMin, localMax){
   return(scale_y_reverse(limits=c(localMin, localMax), expand = c(0,0)))
 }
 
+fn_Lim = function(scaleRange, targetAxis = "x", axisType = "continuous"){
+  if(length(scaleRange)>=2){
+    
+    scaleMin = scaleRange[1]
+    scaleMax = scaleRange[2]
+    scalebreak = (scaleMax-scaleMin)/3
+    
+    if(length(scaleRange)==3){
+      scaleBreak = scaleRange[3]
+    }
+    
+    if(targetAxis == "x"){
+      target = "x" 
+      
+      
+    } else if (targetAxis == "y") {
+      target = "y"
+    }
+    
+    if(axisType == "continuous"){
+      scaleType = continuous
+    } else if (axisType == "log"){
+      scaleType = log10
+    }
+    
+    newScale = scale_target_axisType(
+      limits = c(scaleMin, scaleMax),
+      expand = c(0,0),
+      breaks = c(scaleMin, scaleMax, by = scaleBraek)
+    )
+   
+    return(newScale)   
+  }
+}
+
 fn_shapeScale = function(){
   return(
       scale_shape_manual(
-      name = "Land Use",
+      name = "Land Management",
       labels = c("Cutblock", "Periphery", "Forest Garden"),
       values = c(22,21,24)
     )
@@ -291,7 +326,7 @@ fn_shapeScale = function(){
 fn_colourScale = function(){
   return(
     scale_colour_manual(
-      name = "Land Use",
+      name = "Land Management",
       labels = c("Cutblock", "Periphery", "Forest Garden"),
       values = c(col_CB,col_PF,col_FG)
     )
@@ -301,7 +336,7 @@ fn_colourScale = function(){
 fn_slrScale = function(){
   return(
     scale_colour_manual(
-      name = "Land Use",
+      name = "Land Managemente",
       labels = c("Cutblock", "Periphery", "Forest Garden"),
       values = c(col_CB,col_PF,col_FG)
     )
@@ -311,7 +346,7 @@ fn_slrScale = function(){
 fn_fillScale = function(){
   return(
     scale_fill_manual(
-      name = "Land Use",
+      name = "Land Management",
       labels = c("Cutblock", "Periphery", "Forest Garden"),
       values = c(col_CB,col_PF,col_FG)
     )
@@ -401,11 +436,18 @@ fn_quickNum = function(inputVariable, numDigits = 2){
   )
 }
 
+
 ################################################################################
 #
 #
 #
 ################################################################################
+
+fn_quickSummary = function(referenceModel){
+  fn_statTest(referenceModel, saveTest = FALSE)
+  summary(referenceModel)
+  Anova(referenceModel, type = c("III"))
+}
 
 fn_quickSave = function(savePlot, plotName = glue("{deparse(substitute(savePlot))}.png"), saveWidth = 16.51, saveHeight = 10){
   ggsave (

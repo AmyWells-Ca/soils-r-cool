@@ -128,7 +128,7 @@ data_t = filter(data, Depth_Top == 0)
 ################################################################################
 
 theme_arrow = arrow(length = unit(0.3, "cm"), type = "closed", ends = "both")
-col_Region = "#d3d3d360"
+col_Region = "#00000022"
 
 if(projectSetup$theme == "paper"){
   qp_font = font_paper
@@ -146,13 +146,26 @@ qp_nPitsB = glue("Transect B Samples: n={nrow(data_pB)}")
 qp_nMicroplot = glue("Microplot Samples: n={nrow(data_m)}")
 qp_nTopSoil = glue("Top Soil Samples: n = {nrow(data_t)} | Microplot Samples: n = {nrow(data_m)} | 0-15 Samples: n = {nrow(data_t)-nrow(data_m)}")
 
+qp_shortName = function(){
+  return(
+    scale_x_discrete(
+      "Land Mgmt.",
+      labels = c(
+        "Cutblock" = "CB",
+        "Periphery" = "PF",
+        "Forest Garden" = "FG"
+      )
+    )
+  )
+}
+
 ################################################################################
 #                                                                              #
 #                            QUICK PLOT Land USE                               #
 #                                                                              #
 ################################################################################
 
-qp_landUse = function(dataSource, responseVariable, baselineValue = NULL, agRange = NULL, Lim = NULL){
+qp_landUse = function(dataSource, responseVariable, baselineValue = NULL, agRange = NULL, Lim = NULL, labelBaseline = TRUE){
   
   # ggplot Initialization
   p_temp = ggplot(data = dataSource, mapping = aes(x = Land_Use.f, y = responseVariable, fill = Land_Use.f))
@@ -161,17 +174,21 @@ qp_landUse = function(dataSource, responseVariable, baselineValue = NULL, agRang
   
   plotBaseline = !(is.null(baselineValue))
   plotTarget = !(is.null(agRange))
-  
+
   # Calculate Values for Reference Levels
-  baselineValue.avg = mean(baselineValue, na.rm = TRUE)
-  baselineValue.min = min(baselineValue, na.rm = TRUE)
-  baselineValue.max = max(baselineValue, na.rm = TRUE)
-  agRange.avg = mean(agRange, na.rm = TRUE)
-  agRange.min = min(agRange, na.rm = TRUE)
-  agRange.max = max(agRange, na.rm = TRUE)
+  if(plotBaseline){
+    baselineValue.avg = mean(baselineValue, na.rm = TRUE)
+    baselineValue.min = min(baselineValue, na.rm = TRUE)
+    baselineValue.max = max(baselineValue, na.rm = TRUE)
+  }
+  if(plotTarget){
+    agRange.avg = mean(agRange, na.rm = TRUE)
+    agRange.min = min(agRange, na.rm = TRUE)
+    agRange.max = max(agRange, na.rm = TRUE)
+  }
   
   # Extend X-Axis Depending on Available Comparisons
-  if( plotBaseline & !plotTarget ){                                             # Case 1: There are only reference values
+  if( plotBaseline & !plotTarget & labelBaseline){                             # Case 1: There are only reference values
     p_temp = p_temp + 
       scale_x_discrete(
         limits = c("Cutblock", "Periphery", "Forest Garden","ref"),
@@ -179,7 +196,7 @@ qp_landUse = function(dataSource, responseVariable, baselineValue = NULL, agRang
         labels = c("Cutblock", "Periphery","Forest Garden")
       )
   
-  } else if ( !plotBaseline & plotTarget ) {                                    # Case 2: There are only target values
+  } else if ( !plotBaseline & plotTarget & labelBaseline) {                    # Case 2: There are only target values
     p_temp = p_temp + 
       scale_x_discrete(
         limits = c("Cutblock", "Periphery", "Forest Garden", "ref2"),
@@ -260,7 +277,8 @@ qp_landUse = function(dataSource, responseVariable, baselineValue = NULL, agRang
         annotation_raster(
           col_Region,
           -Inf, Inf,
-          baselineValue.min, baselineValue.max
+          baselineValue.min, 
+          baselineValue.max
         )
     }
   }
@@ -284,8 +302,7 @@ qp_landUse = function(dataSource, responseVariable, baselineValue = NULL, agRang
   
   # Text Above Annotations
   
-  if(plotBaseline){
-    
+  if(plotBaseline & labelBaseline){
     # Is it a target range?
     if(baselineValue.min != baselineValue.max){
       p_temp = p_temp +
@@ -307,7 +324,6 @@ qp_landUse = function(dataSource, responseVariable, baselineValue = NULL, agRang
   }
   
   if(plotTarget){
-    
     # Is it a target range?
     if(agRange.min != agRange.max){
       p_temp = p_temp +
@@ -569,6 +585,7 @@ qp_lmANOVA = function(referenceModel, plotOrientation = "y"){
   model_slope_3 = 0 #                  for Treatment 3
   
   # Significance of the Model --> Added to Caption
+  model_r = fn_quickNum(model_Summary$r.squared, 3)
   model_p_Model = fn_quickNum(fn_simpleF(model_Summary),4)
   model_p_Depth = fn_quickNum(model_Anova$`Pr(>F)`[2],4)
   model_p_LandUse = fn_quickNum(model_Anova$`Pr(>F)`[3],4)
@@ -617,7 +634,7 @@ qp_lmANOVA = function(referenceModel, plotOrientation = "y"){
       geom_abline(aes(intercept = model_intercept_1, slope = model_slope_1), colour = "black", linetype = 2)
     )
     
-    output$caption = glue("Model p={model_p_Model}")
+    output$caption = glue("R^2 = {model_r}; Model p = {model_p_Model}")
     
   } else {
     output$lines = list(
@@ -627,10 +644,16 @@ qp_lmANOVA = function(referenceModel, plotOrientation = "y"){
       fn_colourScale()
     )
     
-    output$caption = glue("Model p={model_p_Model}; Depth p={model_p_Depth}; Land Use p={model_p_LandUse}")
+    output$caption = glue("R^2 = {model_r}; Model p = {model_p_Model}; Depth p = {model_p_Depth}; Land Use p = {model_p_LandUse}")
   }
 
   return(output)
 }
+
+################################################################################
+#                                                                              #
+#                           QUICK STAT FUNCTIONS                               #
+#                                                                              #
+################################################################################
 
 projectSetup$complete = TRUE

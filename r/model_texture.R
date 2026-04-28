@@ -14,16 +14,8 @@
 #
 ################################################################################
 
-# Load Packages & Build Utilities
-source("./r/functions.R")
-
-# Import Main Data set
-data <- readxl::read_xlsx("./input/readable_data.xlsx", sheet = "Machine Readable")
-
-data$Land_Use.f <- as.factor(data$Land_Use)
-
-# Filter data to sites that have textural data
-data_Texture <- filter(data, perSand != 0)
+# Initialize Data & Functions
+source("./r/KFN_initialization.R")
 
 ################################################################################
 #
@@ -34,6 +26,18 @@ data_Texture <- filter(data, perSand != 0)
 
 # Reference Line from Lavkulich and Rowels, 1970
 # Lavkulich, L. M., & Rowles, C. A. (1970). Effect of different land use practices on a British Columbia Spodsol. Soil Science, 111(5), 323–329. https://doi.org/10.1097/00010694-197105000-00010
+
+
+
+p_pit_Tb_001 = qp_depth(data_pB, data_pB$perSand, Lim = c(50,100,10)) +
+  geom_abline(intercept = 147.639686684, slope = -2.55874673629, linetype = 2) +
+  annotate("text", family = qp_font, label = "Lavkulich & Rowels, 1970  >", x = 68, y = 55) + 
+  labs(
+    x = TeX("$\\bf{Percent\\,Sand}\\,(\\%)")
+  )
+p_pit_Tb_001
+
+fn_quickSave(p_pit_Tb_001)
 
 p1 <- ggplot(data = data_Texture, mapping = aes(x = perSand, y = Depth_Avg, fill = Land_Use.f, shape = Land_Use.f)) +
   geom_point(size = 3, colour = "black") +
@@ -252,6 +256,8 @@ predictSand = predict(model_Texture, data)
 data$predictSand = predictSand
 
 # Calculating slope + intercepts for model_Texture
+
+
 
 p4 <- ggplot(data = data) +
   geom_point(mapping = aes(x=perSand, y = Depth_Avg, colour = Land_Use.f, shape = Land_Use.f), size = 3) +
