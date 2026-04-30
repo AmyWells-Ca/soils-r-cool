@@ -27,8 +27,6 @@ source("./r/KFN_initialization.R")
 # Reference Line from Lavkulich and Rowels, 1970
 # Lavkulich, L. M., & Rowles, C. A. (1970). Effect of different land use practices on a British Columbia Spodsol. Soil Science, 111(5), 323–329. https://doi.org/10.1097/00010694-197105000-00010
 
-
-
 p_pit_Tb_001 = qp_depth(data_pB, data_pB$perSand, Lim = c(50,100,10)) +
   geom_abline(intercept = 147.639686684, slope = -2.55874673629, linetype = 2) +
   annotate("text", family = qp_font, label = "Lavkulich & Rowels, 1970  >", x = 68, y = 55) + 
@@ -39,66 +37,52 @@ p_pit_Tb_001
 
 fn_quickSave(p_pit_Tb_001)
 
-p1 <- ggplot(data = data_Texture, mapping = aes(x = perSand, y = Depth_Avg, fill = Land_Use.f, shape = Land_Use.f)) +
-  geom_point(size = 3, colour = "black") +
-  geom_abline(intercept = 147.639686684, slope = -2.55874673629, linetype = 2) +
-  annotate("text", label = "Lavkulich & Rowels, 1970  >", x = 75, y = 75) +
-  fn_fillScale() +
-  fn_shapeScale() +
-  fn_xLim(50,100) +
-  fn_yLimR(0, 80) +
-  labs(
-    y = TeX("$\\bf{Sampling\\,Depth}\\,(cm)"),
-    x = TeX("$\\bf{Percent\\,Sand}\\,(\\%)")
-  ) + theme_presentation
+################################################################################
+#
+# Parameters
+#
+################################################################################
 
-p2 <- ggplot(data = data_Texture, mapping=aes(x=Land_Use.f, y=perSand, fill = Land_Use.f)) +
-  geom_boxplot(color = "black") +
-  stat_summary(fun = mean, geom = "point", shape = 4, size = 4, colour = "black") +
-  stat_pwc(
-    method = "t.test",
-    p.adjust.method = "bonferroni",
-    label = "p.adj.format",
-    tip.length = 0,
-    bracket.shorten = 0.1,
-    y.position = c (91,94,91)
-  ) +
-  fn_fillScale() +
-  guides(fill = "none") +
-  fn_yLim(60,100) +
-  labs(
-    x = TeX("$\\bf{Land\\,Use}"),
-    y = TeX("$\\bf{Percent\\,Sand}\\,(\\%)")
-  ) + theme_presentation
+fn_quickSummary(lm(perSand ~ Depth_Avg + Land_Use.f, data_pB))
+#   R^2 = 0.8023 / 0.7281
+# Depth = 0.000761
+#  Land = 0.154884
 
-p3 <- (p1 + p2 + plot_layout(
-  widths = c(2,1),
-  guides = "collect"
-  ) +
-  plot_annotation(
-    tag_levels = "a",
-    # title = TeX("$\\bf{Pools\\,of\\,Soil\\,pH\\,by\\,Depth}"),
-    subtitle = glue("Transect B Soil Pits | n = 12"),
-    theme = theme_presentation
+fn_quickSummary(lm(perSand ~ Depth_Avg + Altitude + Latitude, data_pB))
+#   R^2 = 0.8023 / 0.7281
+# Depth = 0.000761
+#   Alt = 0.186964
+#   Lat = 0.106575
+
+fn_quickSummary(lm(perSand ~ Depth_Avg + Altitude, data_pB))
+#   R^2 = 0.7206 / 0.6585
+# Depth = 0.001126
+#   Alt = 0.311058
+#   Lat = N/A
+
+fn_quickSummary(lm(perSand ~ Depth_Avg + Latitude, data_pB))
+#   R^2 = 0.7508 / 0.6954
+# Depth = 0.0007666
+#   Alt = N/A
+#   Lat = 0.1570641
+
+################################################################################
+#
+# Predictive Model
+#
+################################################################################
+
+data_c_model = data_c
+data_c_model$modeledSand = predict(lm(perSand ~ Depth_Avg + Altitude + Latitude, data_pB), data_c)
+
+p_comp_sand_001 = qp_depth(data_c_model, data_c_model$modeledSand, Lim = c(50,100,10)) +
+  labs(
+    x = TeX("$\\bf{Modelled\\,Percent\\,Sand}\\,(\\%)$"),
+    caption = TeX(paste0("$R^{2} = $", 0.8023, "; Model p < ", 0.001 , "; Depth p < ", 0.001, "; Altitude p = ", 0.187, "; Latitude p = ", 0.107))
   )
-)
 
-p3
-
-ggsave (
-  filename = "figure_n_DescribedTexture.png",
-  plot = p3,
-  device = agg_png,
-  path = "./output",
-  scale = 1,
-  width = 23.88,
-  height = 10.78,
-  units = c ("cm"),
-  dpi = 300,
-  limitsize = TRUE,
-  bg = NULL,
-  create.dir = FALSE
-)
+p_comp_sand_001
+fn_quickSave(p_comp_sand_001)
 
 ################################################################################
 #                                                                              #
@@ -244,53 +228,53 @@ ggsave (
 #                                                                              #
 ################################################################################
 
-# Simple linear model to predict the percent sand by depth in the soil
-model_Texture = lm(perSand ~ Depth_Avg + Altitude + Latitude, data = data_Texture)
-
-# Model Evaluation Tests (Should you choose to review them again)
-summary(model_Texture)
-Anova(model_Texture, type = c("III"))
-fn_statTest(model_Texture, theme_presentation, saveTest = TRUE)
-
-predictSand = predict(model_Texture, data)
-data$predictSand = predictSand
-
-# Calculating slope + intercepts for model_Texture
-
-
-
-p4 <- ggplot(data = data) +
-  geom_point(mapping = aes(x=perSand, y = Depth_Avg, colour = Land_Use.f, shape = Land_Use.f), size = 3) +
-  geom_point(mapping = aes(x=predictSand, y = Depth_Jitter, colour = Land_Use.f, shape = Land_Use.f), size = 1) +
-  scale_shape_manual(
-    name = "Land Use",
-    labels = c("Cutblock", "Forest Garden", "Periphery Forest"),
-    values = c(15,16,17)
-  ) +
-  scale_colour_manual(
-    name = "Land Use",
-    labels = c("Cutblock", "Forest Garden", "Periphery Forest"),
-    values = c("darkorange2","darkgreen","azure4")
-  ) +
-  fn_yLimR(0, 80) +
-  fn_xLim(50,100) +
-  labs(
-    x = TeX("$\\bf{Percent\\,Sand}\\,(\\%)"),
-    y = TeX("$\\bf{Depth}\\,(cm)")
-  )
-
-ggsave (
-  filename = "predicted_texture.png",
-  plot = p4,
-  device = png(),
-  path = "./output",
-  scale = 1,
-  width = 14.64,
-  height = 10.78,
-  units = c ("cm"),
-  dpi = 300,
-  limitsize = TRUE,
-  bg = NULL,
-  create.dir = FALSE
-)
+# # Simple linear model to predict the percent sand by depth in the soil
+# model_Texture = lm(perSand ~ Depth_Avg + Altitude + Latitude, data = data_pB)
+# 
+# # Model Evaluation Tests (Should you choose to review them again)
+# summary(model_Texture)
+# Anova(model_Texture, type = c("III"))
+# fn_statTest(model_Texture, theme_presentation, saveTest = TRUE)
+# 
+# predictSand = predict(model_Texture, data)
+# data$predictSand = predictSand
+# 
+# # Calculating slope + intercepts for model_Texture
+# 
+# 
+# 
+# p4 <- ggplot(data = data) +
+#   geom_point(mapping = aes(x=perSand, y = Depth_Avg, colour = Land_Use.f, shape = Land_Use.f), size = 3) +
+#   geom_point(mapping = aes(x=predictSand, y = Depth_Jitter, colour = Land_Use.f, shape = Land_Use.f), size = 1) +
+#   scale_shape_manual(
+#     name = "Land Use",
+#     labels = c("Cutblock", "Forest Garden", "Periphery Forest"),
+#     values = c(15,16,17)
+#   ) +
+#   scale_colour_manual(
+#     name = "Land Use",
+#     labels = c("Cutblock", "Forest Garden", "Periphery Forest"),
+#     values = c("darkorange2","darkgreen","azure4")
+#   ) +
+#   fn_yLimR(0, 80) +
+#   fn_xLim(50,100) +
+#   labs(
+#     x = TeX("$\\bf{Percent\\,Sand}\\,(\\%)"),
+#     y = TeX("$\\bf{Depth}\\,(cm)")
+#   )
+# 
+# ggsave (
+#   filename = "predicted_texture.png",
+#   plot = p4,
+#   device = png(),
+#   path = "./output",
+#   scale = 1,
+#   width = 14.64,
+#   height = 10.78,
+#   units = c ("cm"),
+#   dpi = 300,
+#   limitsize = TRUE,
+#   bg = NULL,
+#   create.dir = FALSE
+# )
  

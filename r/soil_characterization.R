@@ -14,9 +14,8 @@
 ################################################################################
 
 # Load Packages & Build Utilities
-if(projectSetup$complete != TRUE){
-  source("./r/KFN_initialization.R")
-}
+rm(list=ls(all=TRUE))  # Remove all objects left from previous runs of R
+source("./r/KFN_initialization.R") # Loads Functions & Datasets
 
 ################################################################################
 #
@@ -536,19 +535,57 @@ fn_quickSave(p_micro_pan_microNutrients, saveHeight = 18)
 #
 ################################################################################
 
-model_panP.d = lm(pan_P ~ Depth_Avg, data = data_p)
+fn_Element.d = function(element, type = 2){
+  model = c()
+  
+  if(type == 3){
+    model = lm(element ~ Depth_Avg*Land_Use.f, data_p)
+  } else if(type == 2){
+    model = lm(element ~ Depth_Avg+Land_Use.f, data_p)
+  } else if(type == 1){
+    model = lm(element ~ Depth_Avg, data_p)
+  }
+  
+  print(fn_quickSummary(model))
+  print("<> Paired T-Tests <>")
+  print("<> <> <> <> <> <> <>")
+  print(
+  pairwise.t.test(
+    x = element,
+    g = data_p$Depth_Avg,
+    p.adjust.method = "bonferroni"
+  ))
+  print(
+  pairwise.t.test(
+    x = element,
+    g = data_p$Land_Use.f,
+    p.adjust.method = "bonferroni"
+  ))
+}
 
-p_pit_P = qp_depth(data_p, data_p$pan_P) + abline(model_panP.d)
-p_pit_P
+fn_Element.d(log(data_p$pan_P+1), 2)
+fn_Element.d(data_p$pan_K, 2)
+fn_Element.d(log(data_p$pan_Ca+1), 2)
+fn_Element.d(data_p$pan_Mg, 2)
+fn_Element.d(data_p$pan_Mn, 2)
+fn_Element.d(data_p$pan_Na, 2)
+fn_Element.d(data_p$pan_S, 2)
+fn_Element.d(data_p$pan_Zn, 2)
+fn_Element.d(data_p$pan_Cu, 2)
 
-p_pit_K = qp_depth(data_p, data_p$pan_K)
-p_pit_K
+#         |           |      |     Model      |
+# Element | Transform | Int. |   p   |   R2   | Depth | Land Use | T-Test Differences
+# --------+-----------+------+-------+--------+-------+----------+------------------------
+# pan_P   | Log10     | No   | 0.030 | 0.3547 | 0.090 | 0.037    | No differences, PF-FG 0.51   
+# pan_K   | None      | No   | 0.001 | 0.4272 | 0.006 | 0.083    | TopSoil != Lower Layers      [ DEPTH ]
+# pan_Ca  | Log10     | No   | 0.005 | 0.4632 | 0.001 | 0.019    | No differences, PF-FG = 0.53 
+# pan_Mg  | None      | No   | 0.008 | 0.4356 | 0.002 | 0.355    | TopSoil != Lower Layers      [ DEPTH ]
+# pan_Mn  | None      | No   | ~0    | 0.6536 | 0.041 | ~0       | PF & FG != CB                [ LANDM ] LOWER
+# pan_Na  | None      | No   | 0.002 | 0.5202 | 0.004 | 0.011    | PF != FG                     [ LANDM ] LOWER
+# pan_S   | None      | No   | ~0    | 0.6258 | 0.009 | ~0       | CB & FG != PF                [ LANDM ] HIGHER
+# Pan_Zn  | None      | No   | 0.022 | 0.3734 | 0.006 | 0.297    | Topsoil != 55-75             [ DEPTH ]
+# pan_Cu  | None      | No   | ~0    | 0.6531 | 0.124 | ~0       | FG != CB & PF                [ LANDM ] LOWER (0)
 
-p_pit_Ca = qp_depth(data_p, data_p$pan_Ca)
-p_pit_Ca
-
-p_pit_Mg = qp_depth(data_p, data_p$pan_Mg)
-p_pit_Mg
 
 ################################################################################
 #
@@ -665,3 +702,30 @@ p_pit_totalElements_005 = (p_pit_totalElements_001 + p_pit_totalElements_002 + p
     theme = qp_theme
   )
 p_pit_totalElements_005
+
+
+fn_Element.d(data_p$total_Al, 2)
+fn_Element.d(data_p$total_Ca, 2)
+fn_Element.d(data_p$total_Cu, 2)
+fn_Element.d(data_p$total_Fe, 2)
+fn_Element.d(data_p$total_K, 2)
+fn_Element.d(data_p$total_Mg, 2)
+fn_Element.d(data_p$total_Mn, 2)
+fn_Element.d(data_p$total_Na, 2)
+fn_Element.d(data_p$total_P, 2)
+fn_Element.d(data_p$total_Zn, 2)
+
+#         |              Model                |
+# Element | Int. | Transform |   p   |   R2   | Depth | Land Use | T-Test Differences
+# --------+------+-----------+-------+--------+-------+----------+------------------------
+# Al      | No   | None      | 0.034 | 0.3445 | 0.019 | 0.161    | None
+# Ca      | No   | None      | ~0    | 0.8260 | ~0    | ~0       | PF & FG != CB
+# Cu      | No   | None      | 0.032 | 0.3496 | 0.029 | 0.100    | None
+# Fe      | No   | None      | 0.281 | 0.1705 | 0.629 | 0.171    | None
+# K       | No   | None      | ~0    | 0.7709 | ~0    | ~0       | PF & FG != CB
+# Mg      | No   | None      | 0.003 | 0.4994 | 0.005 | 0.170    | None
+# Mn      | No   | None      | 0.300 | 0.1646 | 0.177 | 0.389    | None
+# Na      | No   | None      | ~0    | 0.6161 | ~0    | 0.004    | Top Soil != Bottom & PF != CB
+# P       | No   | None      | 0.035 | 0.3441 | 0.036 | 0.091    | None
+# Zn      | No   | None      | 0.004 | 0.4722 | 0.002 | 0.082    | Top Soil != Bottom
+

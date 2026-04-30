@@ -34,8 +34,8 @@ pacman::p_load(
   latex2exp,  # Latex based figure captions
   ggplot2,    # GGPlot
   glue,       # Variable 
-  plotly,     # Interactive plots
-  DT,         # Interactive tables
+  # plotly,     # Interactive plots
+  # DT,         # Interactive tables
   patchwork,  # Combine charts together
   moderndive,  # Paralell Lines???
   ggpubr
@@ -444,11 +444,11 @@ fn_quickNum = function(inputVariable, numDigits = 2){
 ################################################################################
 
 fn_quickSummary = function(referenceModel){
-  print("Model Summary:")
+  print("Model Statistics:")
   fn_statTest(referenceModel, saveTest = FALSE)
   print(summary(referenceModel))
   print(Anova(referenceModel, type = c("III")))
-  print("<> <> <> <> <>")
+  print("<> <> <> <> <> <> <>")
 }
 
 fn_quickSave = function(savePlot, plotName = glue("{deparse(substitute(savePlot))}.png"), saveWidth = 16.51, saveHeight = 10){
