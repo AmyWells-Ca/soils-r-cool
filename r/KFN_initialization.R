@@ -168,7 +168,7 @@ qp_shortName = function(){
 qp_landUse = function(dataSource, responseVariable, baselineValue = NULL, agRange = NULL, Lim = NULL, labelBaseline = TRUE){
   
   # ggplot Initialization
-  p_temp = ggplot(data = dataSource, mapping = aes(x = Land_Use.f, y = responseVariable, fill = Land_Use.f))
+  p_temp = ggplot(data = dataSource, mapping = aes(x = Land_Use.f, y = responseVariable, shape = Land_Use.f, fill = Land_Use.f))
   
   # Prior tests for for not(is.null(variable))
   
@@ -348,9 +348,11 @@ qp_landUse = function(dataSource, responseVariable, baselineValue = NULL, agRang
   # Build the rest of the plot
   
   p_temp = p_temp +
-    geom_boxplot(colour = "black") +
-    guides(fill = "none") +
+    # geom_boxplot(colour = "black", outlier.size = 3) +
+    geom_jitter(size = 3, width = 0.2, height = 0) +
     fn_fillScale() +
+    fn_shapeScale() + 
+    guides(fill = "none", shape = "none") +
     stat_summary(
       fun = mean, 
       geom = "point", 
@@ -634,7 +636,7 @@ qp_lmANOVA = function(referenceModel, plotOrientation = "y"){
       geom_abline(aes(intercept = model_intercept_1, slope = model_slope_1), colour = "black", linetype = 2)
     )
     
-    output$caption = glue("R^2 = {model_r}; Model p = {model_p_Model}")
+    output$caption = TeX(paste0("$R^{2} = $", model_r, "; Model p = ", model_p_Model))
     
   } else {
     output$lines = list(
@@ -643,8 +645,7 @@ qp_lmANOVA = function(referenceModel, plotOrientation = "y"){
       geom_abline(aes(intercept = model_intercept_3, slope = model_slope_3, colour = "Periphery"), linetype = 5),
       fn_colourScale()
     )
-    
-    output$caption = glue("R^2 = {model_r}; Model p = {model_p_Model}; Depth p = {model_p_Depth}; Land Use p = {model_p_LandUse}")
+    output$caption = TeX(paste0("$R^{2} = $", model_r, "; Model p = ", model_p_Model, "; Depth p = ", model_p_Depth, "; Land Use p = ", model_p_LandUse))
   }
 
   return(output)

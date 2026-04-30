@@ -15,7 +15,9 @@
 ################################################################################
 
 # Initialize Data & Functions
-source("./r/KFN_initialization.R")
+if(projectSetup$complete != TRUE){
+  source("./r/KFN_initialization.R")
+}
 
 ################################################################################
 #
@@ -76,12 +78,6 @@ fn_quickSummary(lm(Si_CaCl2 ~ Land_Use.f, data_t))
 aggregate(Si_CaCl2 ~ Land_Use.f, data_t, mean)
 aggregate(Si_CaCl2 ~ Land_Use.f, data_t, sd)
 
-aTest = function(variable){
-  aggregate(variable ~ Land_Use.f, data_t, mean)
-}
-
-quickStat_LandUseMean(Si_CaCl2, data_t)
-
 # model_DSi_perSand = lm(Si_CaCl2 ~ model_perSand, data = data_t)
 # 
 # data_t_ANCOVA = data_t
@@ -107,7 +103,7 @@ Anova(model_DSi.d, type = c("III"))        #    Depth p = 0.020490 --> Significa
 
 fn_statTest(model_DSi.d,                   #      Linearity: No curvilinear relationship
             testTheme = qp_theme,          # Equal Variance: Equal variance across predicted values
-            saveTest = TRUE)               #      Normality: Normally distributed
+            saveTest = FALSE)               #      Normality: Normally distributed
 
 pairwise.t.test(
   x = data_p$Si_CaCl2,
@@ -149,7 +145,24 @@ p_top_AdSi_001 = qp_landUse(data_t, data_t$Si_Acetic, Lim = c(0,125,25)) +
 p_top_AdSi_001
 fn_quickSave(p_top_AdSi_001)
 
+aggregate(Si_Acetic ~ Land_Use.f, data_t, mean)
+aggregate(Si_Acetic ~ Land_Use.f, data_t, sd)
+
 # Depth (Effect of Depth)
+
+pairwise.t.test(
+  x = data_p$Si_Acetic,
+  g = data_p$Land_Use.f,
+  p.adjust.method = "bonferroni"
+)
+
+pairwise.t.test(
+  x = data_p$Si_Acetic,
+  g = data_p$Depth_Avg,
+  p.adjust.method = "bonferroni"
+)
+
+
 
 # Depth + Land Use Model
 model_AdSi.d <- lm(Si_Acetic ~ Depth_Avg+Land_Use.f, data = data_p)
@@ -163,7 +176,7 @@ Anova(model_AdSi.d, type = c("III"))        #    Depth p = 0.001741 --> Signific
 
 fn_statTest(model_AdSi.d,                   #      Linearity: No curvilinear relationship
             testTheme = qp_theme,           # Equal Variance: Equal variance across predicted values
-            saveTest = TRUE)                #      Normality: Normally distributed, slightly faavours higher end
+            saveTest = FALSE)                #      Normality: Normally distributed, slightly faavours higher end
 
 p_pit_AdSi_002 = qp_depth(data_p, data_p$Si_Acetic, Lim = c(0,250,50)) +
   qp_lmANOVA(model_AdSi.d)$lines +
@@ -193,7 +206,22 @@ p_top_WkSi_001 = qp_landUse(data_t, data_t$Oxa_Si, baselineValue = 800, Lim = c(
 p_top_WkSi_001
 fn_quickSave(p_top_WkSi_001)
 
+aggregate(Oxa_Si ~ Land_Use.f, data_t, mean)
+aggregate(Oxa_Si ~ Land_Use.f, data_t, sd)
+
 # Depth (Effect of Depth)
+
+pairwise.t.test(
+  x = data_p$Oxa_Si,
+  g = data_p$Land_Use.f,
+  p.adjust.method = "bonferroni"
+)
+
+pairwise.t.test(
+  x = data_p$Oxa_Si,
+  g = data_p$Depth_Avg,
+  p.adjust.method = "bonferroni"
+)
 
 # Depth + Land Use Model
 # model_WkSi.d <- lm(Oxa_Si ~ Depth_Avg+Land_Use.f, data = data_p)
@@ -207,7 +235,7 @@ fn_quickSave(p_top_WkSi_001)
 # 
 # fn_statTest(model_WkSi.d,                   #      Linearity: No curvilinear relationship
 #             testTheme = qp_theme,           # Equal Variance: Unequal variance across predicted values --> Log or sqrt transform needed
-#             saveTest = TRUE)                #      Normality: Normally distributed, but peaks around 0
+#             saveTest = FALSE)                #      Normality: Normally distributed, but peaks around 0
 
 model_WkSi.d <- lm(log10(Oxa_Si) ~ Depth_Avg+Land_Use.f, data = data_p)
 
@@ -220,7 +248,7 @@ Anova(model_WkSi.d, type = c("III"))        #    Depth p = 0.001118 --> Signific
 
 fn_statTest(model_WkSi.d,                   #      Linearity: No curvilinear relationship
             testTheme = qp_theme,           # Equal Variance: Equal variance!
-            saveTest = TRUE)                #      Normality: As normally distributed according to Shapiro-Wilks, but looks to be a bimodal distribution 
+            saveTest = FALSE)                #      Normality: As normally distributed according to Shapiro-Wilks, but looks to be a bimodal distribution 
 
 p_pit_WkSi_002 = qp_depth(data_p, log10(data_p$Oxa_Si), Lim = c(2,5)) +
   qp_lmANOVA(model_WkSi.d)$lines +
@@ -250,8 +278,22 @@ p_top_ASi_001 = qp_landUse(data_t, data_t$Si_kin) +
 p_top_ASi_001
 fn_quickSave(p_top_ASi_001)
 
+aggregate(Si_kin ~ Land_Use.f, data_t, mean)
+aggregate(Si_kin ~ Land_Use.f, data_t, sd)
+
 # Depth (Effect of Depth)
 
+pairwise.t.test(
+  x = data_p$Si_kin,
+  g = data_p$Land_Use.f,
+  p.adjust.method = "bonferroni"
+)
+
+pairwise.t.test(
+  x = data_p$Si_kin,
+  g = data_p$Depth_Avg,
+  p.adjust.method = "bonferroni"
+)
 # Depth + Land Use Model
 model_ASi.d <- lm(Si_kin ~ Depth_Avg+Land_Use.f, data = data_p)
 
@@ -264,7 +306,7 @@ Anova(model_ASi.d, type = c("III"))        #    Depth p = 0.03565 --> Significan
 
 fn_statTest(model_ASi.d,                   #      Linearity: No curvilinear relationship
             testTheme = qp_theme,          # Equal Variance: Equal variance across predicted values
-            saveTest = TRUE)               #      Normality: Not normally distributed
+            saveTest = FALSE)               #      Normality: Not normally distributed
 
 p_pit_ASi_002 = qp_depth(data_p, data_p$Si_kin) +
   qp_lmANOVA(model_ASi.d)$lines +
@@ -291,7 +333,7 @@ model_CaDSi = lm(Si_CaCl2 ~ pan_Ca, data = data_c)
 
 fn_statTest(model_CaDSi,                   #      Linearity: No curvilinear relationship
             testTheme = qp_theme,          # Equal Variance: Equal variance across predicted values?
-            saveTest = TRUE)               #      Normality: Normally distributed, but slightly skewed left
+            saveTest = FALSE)               #      Normality: Normally distributed, but slightly skewed left
 
 summary(model_CaDSi)                       # Regression is not statistically significant --> p = 0.5332
                                            # R^2 = 0.00978 --> Awful
@@ -302,7 +344,7 @@ model_CaAdSi = lm(Si_Acetic ~ pan_Ca, data = data_c)
 
 fn_statTest(model_CaAdSi,                  #      Linearity: No curvilinear relationship
             testTheme = qp_theme,          # Equal Variance: Equal variance across predicted values?
-            saveTest = TRUE)               #      Normality: Not normally distributed, looks bimodal
+            saveTest = FALSE)               #      Normality: Not normally distributed, looks bimodal
 
 summary(model_CaAdSi)                      # Regression is not statistically significant --> p = 0.3844
                                            # R^2 = 0.01897 --> Awful
@@ -313,7 +355,7 @@ model_CaWkSi = lm(Oxa_Si ~ pan_Ca, data = data_c)
 
 fn_statTest(model_CaWkSi,                  #      Linearity: No curvilinear relationship
             testTheme = qp_theme,          # Equal Variance: Equal variance across predicted values?
-            saveTest = TRUE)               #      Normality: Not normally distributed
+            saveTest = FALSE)               #      Normality: Not normally distributed
 
 summary(model_CaWkSi)                      # Regression is not statistically significant --> p = 0.5147
                                            # R^2 = 0.01069 --> Awful
@@ -324,7 +366,7 @@ model_CaASi = lm(Si_kin ~ pan_Ca, data = data_c)
 
 fn_statTest(model_CaASi,                   #      Linearity: No curvilinear relationship
             testTheme = qp_theme,          # Equal Variance: Equal variance across predicted values
-            saveTest = TRUE)               #      Normality: Normally distributed
+            saveTest = FALSE)               #      Normality: Normally distributed
 
 summary(model_CaASi)                       # Regression is not statistically significant --> p = 0.02171
                                            # R^2 = 0.1248 --> Awful
@@ -360,7 +402,7 @@ model_Total_CaDSi = lm(Si_CaCl2 ~ total_Ca, data = data_p)
 
 fn_statTest(model_Total_CaDSi,             #      Linearity: No curvilinear relationship
             testTheme = qp_theme,          # Equal Variance: Equal variance across predicted values?
-            saveTest = TRUE)               #      Normality: Normally distributed
+            saveTest = FALSE)               #      Normality: Normally distributed
 
 summary(model_Total_CaDSi)                 # Regression is not statistically significant --> p = 0.1265
                                            # R^2 = 0.1029 --> Awful
@@ -371,7 +413,7 @@ model_Total_CaAdSi = lm(Si_Acetic ~ total_Ca, data = data_p)
 
 fn_statTest(model_Total_CaAdSi,                  #      Linearity: No curvilinear relationship
             testTheme = qp_theme,          # Equal Variance: Equal variance across predicted values?
-            saveTest = TRUE)               #      Normality: Not normally distributed, looks bimodal
+            saveTest = FALSE)               #      Normality: Not normally distributed, looks bimodal
 
 summary(model_Total_CaAdSi)                      # Regression is not statistically significant --> p = 0.3844
                                            # R^2 = 0.01897 --> Awful
@@ -382,7 +424,7 @@ model_Total_CaWkSi = lm(Oxa_Si ~ total_Ca, data = data_p)
 
 fn_statTest(model_Total_CaWkSi,                  #      Linearity: No curvilinear relationship
             testTheme = qp_theme,          # Equal Variance: Equal variance across predicted values?
-            saveTest = TRUE)               #      Normality: Not normally distributed
+            saveTest = FALSE)               #      Normality: Not normally distributed
 
 summary(model_Total_CaWkSi)                      # Regression is not statistically significant --> p = 0.5147
                                            # R^2 = 0.01069 --> Awful
@@ -393,7 +435,7 @@ model_Total_CaASi = lm(Si_kin ~ total_Ca, data = data_p)
 
 fn_statTest(model_Total_CaASi,                   #      Linearity: No curvilinear relationship
             testTheme = qp_theme,          # Equal Variance: Equal variance across predicted values
-            saveTest = TRUE)               #      Normality: Normally distributed
+            saveTest = FALSE)               #      Normality: Normally distributed
 
 summary(model_Total_CaASi)                       # Regression is not statistically significant --> p = 0.02171
                                            # R^2 = 0.1248 --> Awful
@@ -416,3 +458,74 @@ p_comp_CaSi_010
 fn_quickSave(p_comp_CaSi_010, saveHeight = 16)
 
 rm(tempLab_x)
+
+
+
+# pH and Silicon
+tempLab_x = TeX("$\\bf{pH\\,\\i\\n\\,0.01M\\,CaCl_{2}}$")
+
+# Calcium and Dissolved Silicon
+model_pHDSi = lm(Si_CaCl2 ~ pH_CaCl2, data = data_c)
+
+fn_statTest(model_pHDSi,             #      Linearity: No curvilinear relationship
+            testTheme = qp_theme,          # Equal Variance: Equal variance across predicted values?
+            saveTest = FALSE)               #      Normality: Normally distributed
+
+summary(model_pHDSi)                 # Regression is not statistically significant --> p = 0.1265
+# R^2 = 0.1029 --> Awful
+# Adj_R^2 = -0.06208
+
+# Calcium and Adsorbed Silicon
+model_pHAdSi = lm(Si_Acetic ~ pH_CaCl2, data = data_c)
+
+fn_statTest(model_pHAdSi,                  #      Linearity: No curvilinear relationship
+            testTheme = qp_theme,          # Equal Variance: Equal variance across predicted values?
+            saveTest = FALSE)               #      Normality: Not normally distributed, looks bimodal
+
+summary(model_pHAdSi)                      # Regression is not statistically significant --> p = 0.3844
+# R^2 = 0.01897 --> Awful
+# Adj_R^2 = -0.005559
+
+# Calcium and Weakly Crystalline Silicon
+model_pHWkSi = lm(Oxa_Si ~ pH_CaCl2, data = data_c)
+
+fn_statTest(model_pHWkSi,                  #      Linearity: No curvilinear relationship
+            testTheme = qp_theme,          # Equal Variance: Equal variance across predicted values?
+            saveTest = FALSE)              #      Normality: Not normally distributed
+
+summary(model_pHWkSi)                      # Regression is not statistically significant --> p = 0
+                                           # R^2 = 0.4203 --> Solid
+                                           # Adj_R^2 = 0.4058
+
+# Calcium and Amorphous Silicon
+model_pHASi = lm(Si_kin ~ pH_CaCl2, data = data_c)
+
+fn_statTest(model_pHASi,                   #      Linearity: No curvilinear relationship
+            testTheme = qp_theme,          # Equal Variance: Equal variance across predicted values
+            saveTest = FALSE)               #      Normality: Normally distributed
+
+summary(model_pHASi)                       # Regression is not statistically significant --> p = 0.02171
+# R^2 = 0.1248 --> Awful
+# Adj_R^2 = 0.103
+
+
+
+p_comp_pHSi_006 = qp_Ratio(data_c, data_c$pH_CaCl2, data_c$Si_CaCl2, yLim = c(0,30,5), xLim = c(2.5,5,0.5)) + labs(y = TeX("$\\bf{Dissolved\\,Si}\\,(mg\\,kg^{-1})$"), x = tempLab_x, caption = qp_lmANOVA(model_pHDSi, plotOrientation = "x")$caption) + qp_lmANOVA(model_pHDSi, plotOrientation = "x")$lines
+p_comp_pHSi_006
+p_comp_pHSi_007 = qp_Ratio(data_c, data_c$pH_CaCl2, data_c$Si_Acetic, yLim = c(0,250,50), xLim = c(2.5,5,0.5)) + labs(y = TeX("$\\bf{Adsorbed\\,Si}\\,(mg\\,kg^{-1})$"), x = tempLab_x, caption = qp_lmANOVA(model_pHAdSi, plotOrientation = "x")$caption) + qp_lmANOVA(model_pHAdSi, plotOrientation = "x")$lines
+p_comp_pHSi_007
+p_comp_pHSi_008 = qp_Ratio(data_c, data_c$pH_CaCl2, data_c$Oxa_Si, yLim = c(0,15000,2500), xLim = c(2.5,5,0.5)) + labs(y = TeX("$\\bf{Weakly Crystaline\\,Si}\\,(mg\\,kg^{-1})$"), x = tempLab_x, caption = qp_lmANOVA(model_pHWkSi, plotOrientation = "x")$caption) + qp_lmANOVA(model_pHWkSi, plotOrientation = "x")$lines
+p_comp_pHSi_008
+p_comp_pHSi_009 = qp_Ratio(data_c, data_c$pH_CaCl2, data_c$Si_kin, yLim = c(0,10000,2500), xLim = c(2.5,5,0.5)) + labs(y = TeX("$\\bf{Amorphous\\,Si}\\,(mg\\,kg^{-1})$"), x = tempLab_x, caption = qp_lmANOVA(model_pHASi, plotOrientation = "x")$caption) + qp_lmANOVA(model_pHASi, plotOrientation = "x")$lines
+p_comp_pHSi_009
+
+p_comp_pHSi_010 = (p_comp_pHSi_006 + p_comp_pHSi_007)/(p_comp_pHSi_008 + p_comp_pHSi_009)/(guide_area()) + plot_layout(guides = "collect", heights = c(4,4,1)) & theme(legend.position = 'bottom', legend.direction = "horizontal") & guides(fill = guide_legend(title.position = "top", title.hjust = 0.5)) & plot_annotation(tag_levels = "A", theme = qp_theme)
+p_comp_pHSi_010
+
+fn_quickSave(p_comp_pHSi_010, saveHeight = 16)
+
+rm(tempLab_x)
+
+
+#######
+

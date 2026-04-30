@@ -14,7 +14,9 @@
 ################################################################################
 
 # Load Packages & Build Utilities
-source("./r/KFN_initialization.R")
+if(projectSetup$complete != TRUE){
+  source("./r/KFN_initialization.R")
+}
 
 ################################################################################
 #
@@ -39,6 +41,15 @@ source("./r/KFN_initialization.R")
 # Microplot pH in H2O, 0.1M CaCl2, and Delta pH
 #
 ################################################################################
+
+aggregate(pH_H2O ~ Land_Use.f, data_m, mean)
+aggregate(pH_H2O ~ Land_Use.f, data_m, sd)
+
+aggregate(pH_CaCl2 ~ Land_Use.f, data_m, mean)
+aggregate(pH_CaCl2 ~ Land_Use.f, data_m, sd)
+
+aggregate(pH_Delta ~ Land_Use.f, data_m, mean)
+aggregate(pH_Delta ~ Land_Use.f, data_m, sd)
 
 p_micro_pH_001 = qp_landUse(data_m, data_m$pH_H2O, baselineValue = c(3.8,4.4,4.5,5.5,4.5,4.5,4.8), Lim = c(2.5,7.0,0.5), labelBaseline = FALSE) + 
   fn_statCompare(c(6,6.25,6)) +
@@ -74,19 +85,52 @@ fn_quickSave(p_micro_pH)
 #
 ################################################################################
 
+model_pH_H2O.p = lm(pH_H2O ~ Depth_Avg, data = data_p) # No Interaction / No Depth or Land Use Effect
+fn_quickSummary(model_pH_H2O.p)
+
+model_pH_CaCl2.p = lm(pH_CaCl2 ~ Depth_Avg, data_p) # No Interaction / Depth Effect but no Land Use Effect
+fn_quickSummary(model_pH_CaCl2.p)
+
+model_pH_Delta.m = lm(pH_Delta ~ Depth_Avg, data_p) # No interaction, but subjectively there is an interaction...
+fn_quickSummary(model_pH_Delta.m)
+
+pairwise.t.test(
+  x = data_p$pH_H2O,
+  g = data_p$Depth_Avg,
+  p.adjust.method = "bonferroni"
+)
+
+pairwise.t.test(
+  x = data_p$pH_CaCl2,
+  g = data_p$Depth_Avg,
+  p.adjust.method = "bonferroni"
+)
+
+pairwise.t.test(
+  x = data_p$pH_Delta,
+  g = data_p$Depth_Avg,
+  p.adjust.method = "bonferroni"
+)
+
 p_pit_pH_001 = qp_depth(data_p, data_p$pH_H2O, Lim = c(3,6,0.5)) +
+  qp_lmANOVA(model_pH_H2O.p)$lines +
   labs(
-    x = TeX("$\\bf{pH\\,\\i\\n\\,H_{2}O}$")
+    x = TeX("$\\bf{pH\\,\\i\\n\\,H_{2}O}$"),
+    caption = qp_lmANOVA(model_pH_H2O.p)$caption
   )
 
 p_pit_pH_002 = qp_depth(data_p, data_p$pH_CaCl2, Lim = c(3,6,0.5)) +
+  qp_lmANOVA(model_pH_CaCl2.p)$lines +
   labs(
-    x = TeX("$\\bf{pH\\,\\i\\n\\,0.01M\\,CaCl_{2}}$")
+    x = TeX("$\\bf{pH\\,\\i\\n\\,0.01M\\,CaCl_{2}}$"),
+    caption = qp_lmANOVA(model_pH_CaCl2.p)$caption
   )
 
 p_pit_pH_003 = qp_depth(data_p, data_p$pH_Delta, Lim = c(0,2,0.5)) +
+  qp_lmANOVA(model_pH_Delta.m)$lines +
   labs(
-    x = TeX("$\\bf{\\Delta pH}\\,(pH_{H_{2}O}-pH_{CaCl_{2}})$")
+    x = TeX("$\\bf{\\Delta pH}\\,(pH_{H_{2}O}-pH_{CaCl_{2}})$"),
+    caption = qp_lmANOVA(model_pH_Delta.m)$caption
   )
 
 
@@ -153,6 +197,7 @@ fn_quickSave(p_pit_pH)
 #
 ################################################################################
 
+
 tempLabel = TeX("$\\bf{CEC}\\,(cmol_{c}\\,kg^{-1})$")
 
 p_micro_CEC = qp_landUse(data_m, data_m$CEC, baselineValue = c(5.3,13), Lim = c(0,16,2)) +
@@ -164,6 +209,18 @@ p_micro_CEC = qp_landUse(data_m, data_m$CEC, baselineValue = c(5.3,13), Lim = c(
 
 p_micro_CEC
 fn_quickSave(p_micro_CEC)
+
+aggregate(CEC ~ Land_Use.f, data_m, mean)
+aggregate(CEC ~ Land_Use.f, data_m, sd)
+
+aggregate(CEC ~ Depth_Avg, data_p, mean)
+aggregate(CEC ~ Depth_Avg, data_p, sd)
+
+pairwise.t.test(
+  x = data_p$CEC,
+  g = data_p$Depth_Avg,
+  p.adjust.method = "bonferroni"
+)
 
 # model_CEC.d <- lm(CEC ~ Depth_Avg*Land_Use.f, data = data_p)
 # 
@@ -213,6 +270,25 @@ p_pit_CEC = qp_depth(data_p, data_p$CEC, Lim = c(0,10,1)) +
 p_pit_CEC
 fn_quickSave(p_pit_CEC)
 
+model_CEC_driver = lm(CEC ~ model_perSand+pH_CaCl2, data_p)
+fn_quickSummary(model_CEC_driver)
+# 
+# axis_x = seq(min(data_p$model_perSand), max(data_p$model_perSand), length.out = 50)
+# axis_y = seq(min(data_p$pH_CaCl2), max(data_p$pH_CaCl2), length.out = 50)
+# 
+# z_matrix = t(outer(axis_x, axis_y, function(x,y){
+#   predict(model_CEC_driver, data.frame(model_perSand = x, pH_CaCl2 = y))
+# }))
+# 
+# testFig = plot_ly(x = ~axis_x, y = ~axis_y, z = ~z_matrix) %>% 
+#   add_surface() %>%
+#   layout(scene = list(
+#     xaxis = list(title = "Sand"),
+#     yaxis = list(title = "pH in 0.01M CaCl2"),
+#     zaxis = list(title = "CEC")
+#   ))
+# testFig
+
 rm(tempLabel)
 
 ################################################################################
@@ -223,8 +299,8 @@ rm(tempLabel)
 
 tempLabel = TeX("$\\bf{Base\\,Saturation}\\,(\\%\\,Base\\,Forming\\,Ions)$")
 
-p_micro_BaseSaturation = qp_landUse(data_m, data_m$BaseSaturation*100, Lim = c(0,30,5)) +
-  fn_statCompare(c(20,25,20)) +
+p_micro_BaseSaturation = qp_landUse(data_m, data_m$BaseSaturation*100, Lim = c(0,50,10)) +
+  fn_statCompare(c(32.5,37.5,32.5)) +
   labs(
     subtitle = qp_nMicroplot,
     y = tempLabel
@@ -232,6 +308,20 @@ p_micro_BaseSaturation = qp_landUse(data_m, data_m$BaseSaturation*100, Lim = c(0
 
 p_micro_BaseSaturation
 fn_quickSave(p_micro_BaseSaturation)
+
+aggregate(BaseSaturation ~ Land_Use.f, data_m, mean)
+aggregate(BaseSaturation ~ Land_Use.f, data_m, sd)
+aggregate(BaseSaturation ~ Land_Use.f, data_m, max)
+
+aggregate(BaseSaturation ~ Depth_Avg, data_p, mean)
+aggregate(BaseSaturation ~ Depth_Avg, data_p, sd)
+
+pairwise.t.test(
+  x = data_p$BaseSaturation,
+  g = data_p$Depth_Avg,
+  p.adjust.method = "bonferroni"
+)
+
 
 model_BS.m <- lm(BaseSaturation*100 ~ Depth_Avg*Land_Use.f, data = data_p)
 
